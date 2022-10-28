@@ -1,0 +1,249 @@
+\documentclass[]{politex}
+% ========== Opções ==========
+% pnumromarab - Numeração de páginas usando algarismos romanos na parte pré-textual e arábicos na parte textual
+% abnttoc - Forçar paginação no sumário conforme ABNT (inclui "p." na frente das páginas)
+% normalnum - Numeração contínua de figuras e tabelas 
+%	(caso contrário, a numeração é reiniciada a cada capítulo)
+% draftprint - Ajusta as margens para impressão de rascunhos
+%	(reduz a margem interna)
+% twosideprint - Ajusta as margens para impressão frente e verso
+% capsec - Forçar letras maiúsculas no título das seções
+% espacosimples - Documento usando espaçamento simples
+% espacoduplo - Documento usando espaçamento duplo
+%	(o padrão é usar espaçamento 1.5)
+% times - Tenta usar a fonte Times New Roman para o corpo do texto
+% noindentfirst - Não indenta o primeiro parágrafo dos capítulos/seções
+
+
+% ========== Packages ==========
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsthm,amsfonts,amssymb}
+\usepackage{graphicx,enumerate}
+\usepackage{natbib}
+\bibliographystyle{abbrvnat}
+
+
+% ========== Language options ==========
+\usepackage[brazil]{babel}
+%\usepackage[english]{babel}
+
+
+% ========== ABNT (requer ABNTeX 2) ==========
+%	http://www.ctan.org/tex-archive/macros/latex/contrib/abntex2
+%\usepackage[num]{abntex2cite}
+
+% Forçar o abntex2 a usar [ ] nas referências ao invés de ( )
+%\citebrackets{[}{]}
+
+
+% ========== Lorem ipsum ==========
+%\usepackage{blindtext}
+
+
+
+% ========== Opções do documento ==========
+% Título
+\titulo{Aprendizado por reforço no controle de robô KUKA}
+
+% Autor
+\autor{Nome Sobrenome}
+
+% Para múltiplos autores (TCC)
+\autor{Guilherme Henrique Martins de Oliveira\\
+		Luan Gustavo de Brito}
+
+% Orientador / Coorientador
+\orientador{Larissa Driemeier}
+\coorientador{Thiago de Castro Martins}
+
+% Tipo de documento
+\tcc{Mecatrônico}
+%\dissertacao{Engenharia Elétrica}
+%\teseDOC{Engenharia Elétrica}
+%\teseLD
+%\memorialLD
+
+% Departamento e área de concentração
+\departamento{Nome do departamento}
+%\areaConcentracao{Área de concentração}
+
+% Local
+\local{São Paulo}
+
+% Ano
+\data{2021}
+
+
+
+
+\begin{document}
+% ========== Capa e folhas de rosto ==========
+\capa
+\falsafolhaderosto
+\folhaderosto
+
+
+% ========== Folha de assinaturas (opcional) ==========
+%\begin{folhadeaprovacao}
+%	\assinatura{Prof.\ X}
+%	\assinatura{Prof.\ Y}
+%	\assinatura{Prof.\ Z}
+%\end{folhadeaprovacao}
+
+
+% ========== Ficha catalográfica ==========
+% Fazer solicitação no site:
+%	http://www.poli.usp.br/en/bibliotecas/servicos/catalogacao-na-publicacao.html
+
+
+% ========== Dedicatória (opcional) ==========
+\dedicatoria{Dedicatória}
+
+
+% ========== Agradecimentos ==========
+\begin{agradecimentos}
+
+Thanks...
+
+\end{agradecimentos}
+
+
+% ========== Epígrafe (opcional) ==========
+\epigrafe{%
+	\emph{``Epígrafe''}
+	\begin{flushright}
+		-{}- Autor
+	\end{flushright}
+}
+
+
+% ========== Resumo ==========
+\begin{resumo}
+Resumo...
+%
+\\[3\baselineskip]
+%
+\textbf{Palavras-Chave} -- Palavra, Palavra, Palavra, Palavra, Palavra.
+\end{resumo}
+
+
+% ========== Abstract ==========
+\begin{abstract}
+Abstract...
+%
+\\[3\baselineskip]
+%
+\textbf{Keywords} -- Word, Word, Word, Word, Word.
+\end{abstract}
+
+
+% ========== Listas (opcional) ==========
+\listadefiguras
+\listadetabelas
+
+% ========== Sumário ==========
+\sumario
+
+
+
+% ========== Elementos textuais ==========
+
+\part{Introdução}
+	
+\chapter{Introdução}
+\section{Contextualização e Apresentação do Tema}
+%\capepigrafe[0.5\textwidth]{``Frase espirituosa de um autor famoso''}{Autor famoso}
+	A robótica é um campo do conhecimento que saiu das páginas da ficção científica e se tornou realidade no ambiente industrial. Os robôs em suas mais diferentes formas estão presentes em indústrias, laboratórios e universidades ao redor do mundo. A inserção da robótica em uma escala cada vez maior com o passar dos anos levou à necessidade de refinamento e melhora das técnicas empregadas neste campo, seja para sensoriamento, atuação ou controle dos robôs.
+	
+	O avanço da robótica no campo industrial possibilitou o surgimento de novas tecnologias e facilitou a padronização de peças e a produção em massa. A robótica é amplamente empregada desde a produção de alimentos até a produção de veículos. A sua maior inserção substituiu a mão-de-obra em tarefas que podem ser consideradas perigosas, garantindo maior segurança ao trabalhador. Além de sua utilização na produção industrial os robôs podem ser encontrados em ambientes domésticos, educacionais e hospitalares, sendo utilizados para auxiliar as pessoas e até mesmo como forma de entretenimento. Devido a sua grande importância e em conjunto com a evolução tecnológica que permitiu o desenvolvimento de hardware e software mais sofisticados, novas técnicas de controle foram desenvolvidas utilizando elementos de Inteligência Artificial e Aprendizado de Máquina.
+	
+	O controle baseado em Aprendizado por Reforço (AR) garante ao robô maior flexibilidade e variabilidade de comportamentos, pois a utilização destas técnicas permite ao robô aprender a realizar ações sem a necessidade de que estas sejam programadas anteriormente. O aprendizado acontece através de interações com o ambiente, utilizando uma função de recompensa que atua de forma a recompensar ou punir o robô com base no resultado da ação e como ela é comparada à ação desejada \citet{kormushev2013reinforcement} .
+	
+	A utilização das técnicas de AR, apesar de inovadora, ainda encontra desafios na aplicação em problemas no mundo real, fora dos ambientes de simulação. De modo a atingir um modelo que seja capaz de ser treinado e validado em um tempo que seja prático e viável, algumas simplificações devem ser implementadas, includindo muitas vezes a necessidade de se fornecer demonstrações de exemplo. A utilização de Aprendizado por Reforço Profundo (ARP) garante maior variablidade ao modelo, pois permite que políticas utlizadas no algoritmo de AR sejam aprendidas sem a necessidade de demonstrações fornecidas pelo usuário.
+	
+	Aprendizado por Reforço Profundo combina as técnicas de Aprendizado Profundo para análise e processamento de dados com a utilização de algoritmos de AR para o aprendizado do robô. A utilização das duas técnicas combinadas funciona bem para tarefas de robôs manipuladores, pois o processamento de dados com Aprendizado Profundo permite que o algoritmo de AR seja capaz de utilizar dados não estruturados, sem a necessidade de tratamento anterior ou simplificação do modelo.
+	
+	
+\section{Objetivos}
+	O objetivo deste projeto consiste em desenvolver uma arquitetura de controle baseada em ARP para controlar um robô manipulador KUKA de modo que este seja capaz de rebater bolas de tênis arremessadas contra ele. O robô deve ser capaz de detectar as bolas e realizar os movimentos em tempo real.
+	
+	A detecção dos objetos será feita através da utilização de câmeras e algoritmos de visão computacional e o tratamento dos dados obtidos pelas câmeras será feito com a utilização de técnicas de Aprendizado Profundo.
+	
+	O algoritmo de controle baseado em AR será treinado e validado em ambiente virtual de simulação e, posteriormente, será embarcado em uma versão real do robô para consolidação e verificação dos resultados obtidos.
+	
+	Pretende-se utilizar esta arquitetura de controle futuramente como ferramenta didática do curso de graduação em engenharia mecatrônica da Escola Politécnica para demonstrar aos estudantes o desenvolvimento prático de controle por ARP, de modo que os futuros engenheiros possam estudar as técnicas empregadas no controle e tenham como visualizar a implementação e funcionamento prático em um robô manipulador real.
+
+\section{Importância e Justificativa do Projeto}
+	
+	O emprego de algoritmos de AR para o controle de movimento de robôs manipuladores é vantajoso em relação à aplicação de técnicas de controle baseadas na programação de trajetórias, pois permite que o robô seja capaz de executar tarefas em que a programação direta não é possível ou não é viável. O controle por AR pode ser usado, inclusive, em situações novas, de modo que o robô seja capaz de aprender como realizar uma ação lidando com valores de parâmetros anteriormente desconhecidos \cite{kormushev2013reinforcement} .
+	
+	Estas técnicas permitem grande capacidade de inovação para a robótica, de modo que robôs possam ser inseridos em ambientes anteriormente desconhecidos e sejam capazes de explorá-los. Do ponto de vista de robôs manipuladores em ambientes industriais, como o KUKA, as técnicas de AR podem ser usadas para permitir aos robôs maior liberdade na execução de tarefas, pois podem usar dados fornecidos por sensores como câmeras com visão computacional e, com base em algoritmos de AR, aprender a lidar com mudanças dinâmicas no ambiente ou com a presença de elementos não considerados na programação direta como pessoas e obstáculos. Essas características garantem maior variabilidade no emprego destes robôs.
+	
+\part{Pesquisa}
+\chapter{Estado da Arte}
+
+    	Os robôs foram revolucionários na construção do mundo moderno. Seu surgimento gerou mudanças profundas em plantas industriais pelo mundo todo, entretanto o ambiente com o qual o robô fosse interagir necessitava de uma preparação para que tudo estivesse no devido lugar, sendo o comportamento do robô programado previamente. Esse tipo de solução tem pouca capacidade de reagir a perturbações que possam surgir durante os ciclos de atuação do robô. Segundo \cite{Zhu2021}, com a evolução dos algoritmos e recursos computacionais, fez-se possível a utilização de sistemas de controle com realimentação nas instalações com robôs, obtendo-se a precisão necessária para o uso industrial em larga escala. Segundo Zamalloa et al. [2017], a robótica encontra-se na geração 4 de sua evolução, marcada pelo uso de algoritmos de aprendizado de máquina e inteligência artificial no controle e tomada de decisão dos robôs. Especialmente, o uso de Aprendizado por reforço na otimização de rota dos robôs, em tempo real.
+    	Devido à sua importância no estado da arte da robótica, o estado da arte no uso de técnicas de controle de robôs baseadas em Aprendizado por Reforço e Aprendizado por Reforço Profundo será analisado em maiores detalhes.
+    	
+    	
+    	\section{Aprendizado por reforço}
+    	
+
+Observando os trabalhos de  \cite{Lillicrap} (apresenta um modelo de AR capaz de resolver 20 problemas físicos, incluindo equilíbrio de pêndulo invertido, caminhada bípede e quadrúpede 2D) e \citet{Mankowitz2019} (apresenta um modelos de AR treinados em ambiente propositalmente diferentes do ambiente final, sendo que o modelo é capaz de lidar com as duas situações) torna-se evidente que técnicas de aprendizado de máquina têm maior robustez, ou seja, capacidade de lidar com perturbações e varições no sistema real, que seus análogos feitos puramente com empenho humano e rotas e pré-definidas. Tendo isso em vista, é natural que tais técnicas sejam as mais utilizadas atualmente para determinação de rota e controle de robôs nas mais diversas aplicações. Vale ressaltar que a abrangência de seu uso é prova da capacidade de generalização e robustez do modelo de aprendizagem por reforço. Sendo alguns deles: aprendizado de caminhada bípede, em \cite{kormushev2013reinforcement}, ou quadrúpede, em \cite{Shen2012}, movimentos finos em mão robótica humanóide em \cite{Marcin,OpenAI2019}, robô manipulador rebatendo uma bola com taco de baseball em \cite{Peters2008}, encaixe de peças em planta industrial de montagem em \cite{Luo}.
+
+Entretanto, a alta capacidade de generalização do aprendizado por reforço vem com um custo alto, o número de tentativas que robô tem que fazer durante um treinamento é grande, da ordem de pelo menos centenas de rodadas, assim como mostrado em \cite{kormushev2013reinforcement}. É importante perceber também que apesar de avanços estarem sendo feitos na direção de treinamento no mundo real, como em \cite{Mahmood2018}, existem inúmeros benefícios em utilizar um ambiente virtual de treinamento, sendo a opção mais comum atualmente. Além disso, diversos trabalhos demonstram que é possível fazer a transição do ambiente simulado para o mundo real de forma bastante acurada, como em \cite{Hundt2020, Peng2017, Schwab, Hu2021, Christiano2016, Zhu2021}.
+
+\section{Aprendizado por reforço profundo}
+
+Com o acesso a placas gráficas mais potentes e a imensos bancos de dados para treinamento, as redes neurais convolucionais (RNC) revolucionaram o mundo da inteligencia artificial. Com sua capacidade incrível de generalização se tornou a forma mais utilizada de se fazer reconhecimento e classificação de imagens. Da mesma forma, as RNCs criaram um novo marco no mundo do aprendizado por reforço: o surgimento do Aprendizado por Reforço Profundo (ARP). A primeira vez que o ARP apareceu como grande revolução foi em 2013 no trabalho \citet{Atari}, unindo o reconhecimento de imagens poderoso das RNCs com a interação com o ambiente trazida do aprendizado por reforço, o modelo criado foi capaz de aprender a jogar 7 jogos diferentes de Atari.
+
+Um ponto crucial no desenvolvimento do ARP foi a não utilização de camadas de pooling nas Redes que se combinam com o aprendizado por reforço. Isso é importante pois as camadas de pooling subtraem a informação do posicionamento do elemento das próximas camadas, recurso útil na generalização para reconhecimento de imagens, mas infeliz quando a disposição dos elementos na imagem importa. Dessa forma, faz-se possível treinar o algoritmo de AR sem a necessidade de simulação gráfica, utilizando coordenadas absolutas, que serão alimentadas para o algoritmo posteriormente pela rede neural, como feito nos trabalhos de \cite{Marcin,OpenAI2019}.
+
+O uso de aprendizado por reforço profundo na robótica têm sido cada vez mais comum, possibilitando aprendizado simultâneo de visão e trajetória, como em \cite{Schwab,Kalashnikov2018}, ou ainda,  como apresentado por \cite{Vecerik2020,Jeong2020} o uso de aprendizado auto-supervisionado. Com isso é possível fazer ainda mais com menos esforço do desenvolvedor, por isso usos de ARP tem sido tão frequentes.
+
+\part{Projeto}
+\chapter{Requisitos de Projeto}
+\section{Requisitos}
+O objetivo deste trabalho é desenvolver uma arquitetura de controle baseada em aprendizado por reforço para um robô KUKA de modo que este seja capaz de rebater uma bola de tênis arremessada contra ele. Para alcançar este objetivo foram definidos os seguintes requisitos de projeto:
+\begin{itemize}
+\item{A implementação do algoritmo em robô KUKA real deve ser viável sem que haja alterações dos resultados obtidos por simulação.}
+\item{Após o controle ter sido embarcado, o robô deve ser capaz de rebater as bolas de tênis arremessadas contra ele com uma taxa de sucesso superior a 95\%.}
+\item{O sistema deve funcionar em tempo real.}
+\end{itemize}
+
+Foram definidos três requisitos de projeto. O primeiro requisito de projeto té a condição de que o sucesso do trabalho depende da viabilidade de implementação do algoritmo em um robô real. O segundo requisito impõe uma taxa mínima de resultados positivos, cenário em que o robô consegue rebater as bolas de tênis arremessadas contra ele, para considerar que o algoritmo implementado funciona. O último requisito é a condição de que o algoritmo de controle deve ser capaz de detectar as bolas de tênis e realizar a ação de rebater a bola em tempo real.
+
+
+
+
+
+
+
+
+%\begin{citacaoLonga}
+%	\blindtext
+%\end{citacaoLonga}
+
+
+
+
+
+
+
+
+% ========== Referências ==========
+% --- IEEE ---
+%	http://www.ctan.org/tex-archive/macros/latex/contrib/IEEEtran
+%\bibliographystyle{IEEEbib}
+
+% --- ABNT (requer ABNTeX 2) ---
+%	http://www.ctan.org/tex-archive/macros/latex/contrib/abntex2
+
+\newpage
+\bibliography{referencia}
+
+
+
+
+\end{document}
+

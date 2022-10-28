@@ -1,0 +1,63 @@
+<mujoco>
+
+<compiler meshdir="meshes" angle="radian" />
+<option timestep="0.005"/>
+
+
+  <size nconmax="1000" njmax="3000"/>
+
+  
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1=".3 .5 .7" rgb2="0 0 0" width="512" height="512"/>
+    <texture name="body" type="cube" builtin="flat" mark="cross" width="127" height="1278"
+             rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1" random="0.01"/>
+    <material name="body" texture="body" texuniform="true" rgba="0.8 0.6 .4 1"/>
+    <texture name="grid" type="2d" builtin="flat" width="512" height="512" rgb1=".345 .349 .356" />
+    <!-- <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance="0" shininess="0" specular= "0.0"/> -->
+    <material name="grid"  texrepeat="1 1" texuniform="true" reflectance="0" shininess="0" specular= "0.0" rgba=".345 .349 .356 1"/>
+    <texture name="wall" type="2d" builtin="flat" rgb1=".9607 .9607 .8627" width="512" height="512"/>
+    <material name="wall" texture="wall" texrepeat="1 1" texuniform="true" reflectance="0"/>
+    <mesh name="table120" file="mesa120_scaled.stl" />
+    <mesh name="table140" file="mesa140_scaled.stl" />
+        
+  </asset>
+ 
+
+  <visual>
+    <map force="0.1" zfar="30"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <quality shadowsize="4096"/>
+    <global offwidth="800" offheight="800"/>
+  </visual>
+
+  <worldbody>
+    <geom name="floor" size="0 0 .05" type="plane" material="grid" condim="3"/>
+    <geom name="wall_1" type="plane" material="wall" condim="3" pos="3.24 1.9 1.125" zaxis="0 -1 0" size="5.5 1.125 .5"/>
+    <geom name="wall_2"  type="plane" material="wall" condim="3" pos="-2.0 -0.9 1.125" zaxis="1 0 0" size="1.125 3 0.5"/>
+    <geom name="wall_3"  type="plane" material="wall" condim="3" pos="3.24 -3.84 1.125" zaxis="0 1 0" size="5.5 1.125 .5"/>
+    <geom name="wall_4"  type="plane" material="wall" condim="3" pos="8.64 -0.9 1.125" zaxis="-1 0 0" size="1.125 3 .5"/>
+    
+    <geom name="mesa0" type="mesh" pos ="2.0 0.5 0" mesh="table140" xyaxes="0 1 0 0 0 1"/> 
+    <!-- <geom name="mesa1" type="mesh" pos ="2.0 -0.95 0" mesh="table140" xyaxes="0 1 0 0 0 1"/>      -->
+    <geom name="mesa2" type="mesh" pos ="2.0 -2.4 0" mesh="table120" xyaxes="0 1 0 0 0 1"/> 
+    <geom name="mesa3" type="mesh" pos ="0.55 -1.8 0" mesh="table140" xyaxes="1 0 0 0 0 1"/> 
+    <light name="spotlight0" pos="-0.427 -2.34 2.25"  diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight1" pos="-0.427 0.66 2.25"  diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight2" pos="1.407 -2.34 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight3" pos="1.407 0.66 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight4" pos="3.24 -2.34 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight5" pos="3.24 0.66 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight6" pos="5.073 -2.34 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight7" pos="5.073 0.66 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight8" pos="6.907 -2.34 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlight9" pos="6.907 0.66 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <camera name="depth_camera0"  mode="fixed" fovy="58" pos="3 0 .7" xyaxes="0 1 0 0 0 1" />
+    <camera name="depth_camera1"  mode="fixed" fovy="58" pos="3 -0 0.81" xyaxes="0 1 0 0 0 1" />  
+    
+  </worldbody>
+
+  <include file="kr16_2.xml" />
+  
+  
+  
+</mujoco> 
