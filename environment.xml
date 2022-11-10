@@ -51,8 +51,8 @@
     <light name="spotlight7" pos="5.073 0.66 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
     <light name="spotlight8" pos="6.907 -2.34 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
     <light name="spotlight9" pos="6.907 0.66 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
-    <camera name="depth_camera0"  mode="fixed" fovy="58" pos="3 0 .7" xyaxes="0 1 0 0 0 1" />
-    <camera name="depth_camera1"  mode="fixed" fovy="58" pos="3 -0 0.81" xyaxes="0 1 0 0 0 1" />  
+    <camera name="depth_camera0"  ipd="0.050" mode="fixed" fovy="58" pos="3 0 .7" xyaxes="0 1 0 0 0 1" />
+    <camera name="depth_camera1"  ipd="0.050" mode="fixed" fovy="58" pos="3 -0 0.81" xyaxes="0 1 0 0 0 1" />  
     
   </worldbody>
 

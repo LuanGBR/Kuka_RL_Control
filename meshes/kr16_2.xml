@@ -1,0 +1,53 @@
+<mujoco model="kuka_kr16_2">
+    <asset>
+        <mesh name="base_link" file="base_link.stl" />
+        <mesh name="link_1" file="link_1.stl" />
+        <mesh name="link_2" file="link_2.stl" />
+        <mesh name="link_3" file="link_3.stl" />
+        <mesh name="link_4" file="link_4.stl" />
+        <mesh name="link_5" file="link_5.stl" />
+        <mesh name="link_6" file="link_6.stl" />
+    </asset>
+    <worldbody>
+        <geom type="mesh" mesh="base_link" rgba="0.1 0.1 0.1 1" />
+        <body name="link_1" pos="0 0 0.675" >
+            <inertial pos="0 0 0" mass="2" diaginertia="0.01 0.01 0.01" />
+            <geom type="mesh" mesh="link_1" rgba="0.95 0.36 0.1 1"/>
+            <joint name="joint_a1" pos="0 0 0" axis="0 0 -1" limited="true" range="-3.22886 3.22886" type="hinge"/>
+            <body name="link_2" pos="0.26 0 0">
+                <inertial pos="0 0 0" mass="2" diaginertia="0.01 0.01 0.01" />
+                <joint name="joint_a2" pos="0 0 0" axis="0 1 0" limited="true" range="-2.70526 0.610865" />
+                <geom type="mesh" mesh="link_2" rgba="0.95 0.36 0.1 1"/>
+                <body name="link_3" pos="0.68 0 0">
+                    <inertial pos="0 0 0" mass="2" diaginertia="0.01 0.01 0.01" />
+                    <joint name="joint_a3" pos="0 0 0" axis="0 1 0" limited="true" range="-2.26893 2.68781" />
+                    <geom type="mesh" mesh="link_3" rgba="0.95 0.36 0.1 1"/>
+                    <body name="link_4" pos="0.67 0 -0.035">
+                        <inertial pos="0 0 0" mass="2" diaginertia="0.01 0.01 0.01" />
+                        <joint name="joint_a4" pos="0 0 0" axis="-1 0 0" limited="true" range="-6.10865 6.10865" />
+                        <geom type="mesh" mesh="link_4" rgba="0.95 0.36 0.1 1" />
+                        <body name="link_5" pos="0 0 0">
+                            <inertial pos="0 0 0" mass="2" diaginertia="0.01 0.01 0.01" />
+                            <joint name="joint_a5" pos="0 0 0" axis="0 1 0" limited="true" range="-2.26893 2.26893" />
+                            <geom type="mesh" mesh="link_5" rgba="0.95 0.36 0.1 1"/>
+                            <body name="EE" pos="0 0 0">
+                                <inertial pos="0 0 0" mass="2" diaginertia="0.01 0.01 0.01" />
+                                <joint name="joint_a6" pos="0 0 0" axis="-1 0 0" limited="true" range="-6.10865 6.10865" />
+                                <geom type="mesh" mesh="link_6" rgba="0.95 0.36 0.1 1"/>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+    <actuator >
+                <position name="a1_pos" joint="joint_a1" ctrllimited="true" ctrlrange="-300.22886 3.22886" gear="1" kp="500"/>
+                <position name="a2_pos" joint="joint_a2"/>
+                <position name="a3_pos" joint="joint_a3"/>
+                <position name="a4_pos" joint="joint_a4"/>
+                <position name="a5_pos" joint="joint_a5"/>
+                <position name="a6_pos" joint="joint_a6"/>
+
+    </actuator>
+</mujoco>

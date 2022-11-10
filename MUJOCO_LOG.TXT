@@ -1,0 +1,114 @@
+Thu Nov  3 00:51:03 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:03:32 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:03:56 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:06:15 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:15:56 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:19:26 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:19:46 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:20:01 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:20:25 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:20:48 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:21:40 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:33:26 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Thu Nov  3 01:43:37 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Tue Nov  8 20:32:02 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Tue Nov  8 20:52:54 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 1. The simulation is unstable. Time = 18.7700.
+
+Tue Nov  8 20:56:55 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 4. The simulation is unstable. Time = 0.0600.
+
+Tue Nov  8 20:57:31 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 0.0950.
+
+Wed Nov  9 22:32:17 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0600.
+
+Wed Nov  9 22:33:41 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0450.
+
+Wed Nov  9 22:34:00 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0450.
+
+Wed Nov  9 22:35:27 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0250.
+
+Wed Nov  9 22:36:46 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0250.
+
+Wed Nov  9 22:36:56 2022
+WARNING: Nan, Inf or huge value in QVEL at DOF 3. The simulation is unstable. Time = 0.0100.
+
+Wed Nov  9 22:37:11 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 13.6350.
+
+Wed Nov  9 22:39:38 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0035.
+
+Wed Nov  9 22:40:55 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0035.
+
+Wed Nov  9 22:40:56 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0035.
+
+Wed Nov  9 22:40:56 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0035.
+
+Wed Nov  9 22:42:43 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0550.
+
+Wed Nov  9 22:42:58 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0900.
+
+Wed Nov  9 22:43:11 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.1550.
+
+Wed Nov  9 22:43:22 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 0.0250.
+
+Wed Nov  9 23:05:18 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Wed Nov  9 23:05:45 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Wed Nov  9 23:06:08 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Wed Nov  9 23:06:30 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Wed Nov  9 23:06:51 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
+Wed Nov  9 23:07:19 2022
+WARNING: OpenGL error 0x500 in or before mjr_makeContext
+
