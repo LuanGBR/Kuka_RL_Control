@@ -57,14 +57,14 @@
                 <!-- <position name="a3_pos" joint="joint_a3" ctrllimited="true" ctrlrange="-2.26893 2.68781" gear="1" kp="1"/> -->
                 <!-- <position name="a4_pos" joint="joint_a4" ctrllimited="true" ctrlrange="-6.10865 6.10865" gear="1" kp="1"/> -->
                 <!-- <position name="a5_pos" joint="joint_a5" ctrllimited="true" ctrlrange="-2.26893 2.26893" gear="1" kp="1"/> -->
-                <position name="a6_pos" joint="joint_a6" ctrllimited="true" ctrlrange="-6.10865 6.10865" gear="1" kp="1"/>
+                <!-- <position name="a6_pos" joint="joint_a6" ctrllimited="true" ctrlrange="-6.10865 6.10865" gear="1" kp="2"/> -->
 
                 <!-- <velocity name="a1_vel" joint="joint_a1" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" gear="1" kv="1"/> -->
                 <!-- <velocity name="a2_vel" joint="joint_a2" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" gear="1" kv="1"/> -->
                 <!-- <velocity name="a3_vel" joint="joint_a2" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" gear="1" kv="1"/> -->
                 <!-- <velocity name="a4_vel" joint="joint_a4" ctrllimited="true" ctrlrange="-5.75958653158 5.75958653158" gear="1" kv="1"/> -->
                 <!-- <velocity name="a5_vel" joint="joint_a5" ctrllimited="true" ctrlrange="-5.75958653158 5.75958653158" gear="1" kv="1"/> -->
-                <velocity name="a6_vel" joint="joint_a6" ctrllimited="true" ctrlrange="-10.7337748998 10.7337748998" gear="1" kv="1"/>
+                <intvelocity name="a6_intvel" joint="joint_a6" ctrllimited="true" actrange="-6.10865 6.10865" ctrlrange="-10.7337748998 10.7337748998" kp="2000"/>
 
 
 
@@ -75,4 +75,5 @@
        
 </contact>
 </mujoco>
+
 

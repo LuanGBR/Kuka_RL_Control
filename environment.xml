@@ -1,7 +1,7 @@
 <mujoco>
 
 <compiler meshdir="meshes" angle="radian" />
-<option timestep="0.005"/>
+<option timestep="0.005" integrator="RK4"/>
 
 
   <size nconmax="1000" njmax="3000"/>
