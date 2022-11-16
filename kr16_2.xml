@@ -16,32 +16,25 @@
         <body name="base">
             <geom type="mesh" mesh="base_link" rgba="0.1 0.1 0.1 1" />
             <body name="link_1" pos="0 0 0.675" >
-                <!-- <inertial pos="0 0 0" mass="0.000001" diaginertia="0.01 0.01 0.01" /> -->
-                <!-- <joint name="joint_a1" pos="0 0 0" axis="0 0 1" limited="true" range="-3.22886 3.22886" /> -->
-                <geom type="mesh" mesh="link_1" rgba="0.95 0.36 0.1 1"/>
+                <joint name="joint_a1" pos="0 0 0" axis="0 0 1" limited="true" range="-3.22886 3.22886" />
+                <geom type="mesh" mesh="link_1" rgba="0.95 0.36 0.1 1" density="1"/>
                 <body name="link_2" pos="0.26 0 0">
-                    <!-- <inertial pos="0 0 0" mass="0.000001" diaginertia="0.01 0.01 0.01" /> -->
-                    <!-- <joint name="joint_a2" pos="0 0 0" axis="0 1 0" limited="true" range="-2.70526 0.610865"  /> -->
-                    <geom type="mesh" mesh="link_2" rgba="0.95 0.36 0.1 1"/>
+                    <joint name="joint_a2" pos="0 0 0" axis="0 1 0" limited="true" range="-2.70526 0.610865"  />
+                    <geom type="mesh" mesh="link_2" rgba="0.95 0.36 0.1 1" density="1"/>
                     <body name="link_3" pos="0.68 0 0">
-                        <!-- <inertial pos="0 0 0" mass="0.000001" diaginertia="0.01 0.01 0.01" /> -->
-                        <!-- <joint name="joint_a3" pos="0 0 0" axis="0 1 0" limited="true" range="-2.26893 2.68781" /> -->
-                        <geom type="mesh" mesh="link_3" rgba="0.95 0.36 0.1 1"/>
+                        <joint name="joint_a3" pos="0 0 0" axis="0 1 0" limited="true" range="-2.26893 2.68781" />
+                        <geom type="mesh" mesh="link_3" rgba="0.95 0.36 0.1 1" density="1"/>
                         <body name="link_4" pos="0.67 0 -0.035">
-                            <!-- <inertial pos="0 0 0" mass="0.000001" diaginertia="0.01 0.01 0.01" /> -->
-                            <!-- <joint name="joint_a4" pos="0 0 0" axis="-1 0 0" limited="true" range="-6.10865 6.10865"/> -->
-                            <geom type="mesh" mesh="link_4" rgba="0.95 0.36 0.1 1" />
+                            <joint name="joint_a4" pos="0 0 0" axis="-1 0 0" limited="true" range="-6.10865 6.10865"/>
+                            <geom type="mesh" mesh="link_4" rgba="0.95 0.36 0.1 1" density="1" />
                             <body name="link_5" pos="0 0 0">
-                                <!-- <inertial pos="0 0 0" mass="0.000001" diaginertia="0.01 0.01 0.01" /> -->
-                                <!-- <joint name="joint_a5" pos="0 0 0" axis="0 1 0" limited="true" range="-2.26893 2.26893" /> -->
-                                <geom type="mesh" mesh="link_5" rgba="0.95 0.36 0.1 1"/>
+                                <joint name="joint_a5" pos="0 0 0" axis="0 1 0" limited="true" range="-2.26893 2.26893" />
+                                <geom type="mesh" mesh="link_5" rgba="0.95 0.36 0.1 1" density="1"/>
                                 <body name="link_6" pos="0 0 0">
-                                    <!-- <inertial pos="0 0 0" mass="0.000001" diaginertia="0.01 0.01 0.01" /> -->
                                     <joint name="joint_a6" pos="0 0 0" axis="-1 0 0" limited="true" range="-6.10865 6.10865"  />
-                                    <geom type="mesh" mesh="link_6" rgba="0.95 0.36 0.1 1"/>
+                                    <geom type="mesh" mesh="link_6" rgba="0.95 0.36 0.1 1" density="1"/>
                                     <body name="cestinho" pos="0.155 0 0">
-                                        <!-- <inertial pos="0 0 0" mass="0.000001" diaginertia="0.01 0.01 0.01" /> -->
-                                        <geom type="mesh" mesh="cestinho" rgba="0.95 0.36 0.1 1" xyaxes="0 1 0 0 0 1"/>
+                                        <geom type="mesh" mesh="cestinho" rgba="0.95 0.36 0.1 1" xyaxes="0 1 0 0 0 1" density="1"/>
                                     </body>
                                 </body>
                             </body>
@@ -52,28 +45,28 @@
         </body>
     </worldbody>
     <actuator >
-                <!-- <position name="a1_pos" joint="joint_a1" ctrllimited="true" ctrlrange="-3.22886 3.22886" gear="1" kp="1"/> -->
-                <!-- <position name="a2_pos" joint="joint_a2" ctrllimited="true" ctrlrange="-2.70526 0.610865" gear="1" kp="1"/> -->
-                <!-- <position name="a3_pos" joint="joint_a3" ctrllimited="true" ctrlrange="-2.26893 2.68781" gear="1" kp="1"/> -->
-                <!-- <position name="a4_pos" joint="joint_a4" ctrllimited="true" ctrlrange="-6.10865 6.10865" gear="1" kp="1"/> -->
-                <!-- <position name="a5_pos" joint="joint_a5" ctrllimited="true" ctrlrange="-2.26893 2.26893" gear="1" kp="1"/> -->
-                <!-- <position name="a6_pos" joint="joint_a6" ctrllimited="true" ctrlrange="-6.10865 6.10865" gear="1" kp="2"/> -->
+               
 
-                <!-- <velocity name="a1_vel" joint="joint_a1" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" gear="1" kv="1"/> -->
-                <!-- <velocity name="a2_vel" joint="joint_a2" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" gear="1" kv="1"/> -->
-                <!-- <velocity name="a3_vel" joint="joint_a2" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" gear="1" kv="1"/> -->
-                <!-- <velocity name="a4_vel" joint="joint_a4" ctrllimited="true" ctrlrange="-5.75958653158 5.75958653158" gear="1" kv="1"/> -->
-                <!-- <velocity name="a5_vel" joint="joint_a5" ctrllimited="true" ctrlrange="-5.75958653158 5.75958653158" gear="1" kv="1"/> -->
-                <intvelocity name="a6_intvel" joint="joint_a6" ctrllimited="true" actrange="-6.10865 6.10865" ctrlrange="-10.7337748998 10.7337748998" kp="2000"/>
+                <intvelocity name="a1_intvel" joint="joint_a1" actrange="-3.22886 3.22886" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" kp="100000"/>
+                <intvelocity name="a2_intvel" joint="joint_a2" actrange="-2.70526 0.610865" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" kp="64000"/> 
+                <intvelocity name="a3_intvel" joint="joint_a3" actrange="-2.26893 2.68781" ctrllimited="true" ctrlrange="-5.75958653158 5.75958653158" kp="32000"/>
+                <intvelocity name="a4_intvel" joint="joint_a4" ctrllimited="true" actrange="-6.10865 6.10865" ctrlrange="-5.75958653158 5.75958653158" kp="400.0"/>
+                <intvelocity name="a5_intvel" joint="joint_a5" actrange="-2.26892802759 2.26892802759" ctrllimited="true" ctrlrange="-5.75958653158 5.75958653158" kp="400"/>
+                <intvelocity name="a6_intvel" joint="joint_a6" ctrllimited="true" actrange="-6.10865 6.10865" ctrlrange="-10.7337748998 10.7337748998" kp="100"/>
 
 
 
     </actuator>
     <contact>
         <exclude name="exclude_2_body_0" body1="base" body2="link_1"/>
-        <exclude name="exclude_6_body_5" body1="link_5" body2="link_6"/>
+        <exclude name="exclude_6_body_5" body1="link_6" body2="link_5"/>
+        <exclude name="exclude_5_body_4" body1="link_5" body2="link_4"/>
+        <exclude name="exclude_4_body_3" body1="link_4" body2="link_3"/>
+        <exclude name="exclude_3_body_2" body1="link_3" body2="link_2"/>
+        <exclude name="exclude_2_body_1" body1="link_2" body2="link_1"/>
        
 </contact>
 </mujoco>
+
 
 
