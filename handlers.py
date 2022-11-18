@@ -2,12 +2,14 @@ import mujoco
 import mujoco_viewer
 import numpy as np
 import cv2
+from cv2 import KalmanFilter
 import random
 import matplotlib.pyplot as plt
 from collections import deque
 import imutils
 
 class MujocoHandler:
+    """A handler for the mujoco environment."""
     def __init__(self,model_path):
         model = mujoco.MjModel.from_xml_path(model_path)
         data = mujoco.MjData(model)
@@ -65,6 +67,7 @@ class MujocoHandler:
 
 
 class RGBD_CamHandler:
+    """A handler for the RGBD camera. It is used to get the RGBD images from the environment and the 3D coordinates of a pixel."""
     def __init__(self,environment,size=500,windowed=False,fps=60):
         self._env = environment
         model = self._env.model
@@ -144,8 +147,8 @@ class RGBD_CamHandler:
     def _calc_Hinv(self):
         return np.linalg.inv(self._H)
 
-    def update_frame(self):
-        if  self._env._cam_aux_count > self._ticks_per_frame:
+    def update_frame(self,simulate_fps=True):
+        if  self._env._cam_aux_count > self._ticks_per_frame or not simulate_fps:
             self._env._cam_aux_count = 0
             if self._windowed:
                 self._viewer.render()
@@ -160,24 +163,7 @@ class RGBD_CamHandler:
     
     def get_depth_array(self):
         return self.depth_buffer
-    
-    # def get_3D_coords(self,pixel):
-    #     """Converts a pixel coordinate to a 3D point in meters."""
-    #     model = self._env.model
-    #     extent = model.stat.extent
-    #     near = model.vis.map.znear  * extent
-    #     far = model.vis.map.zfar * extent
-    #     self.update_frame()
-    #     depth_meters = near / (1 - self.depth_buffer * (1 - near / far))
-    #     p = np.ones((self._width,self._height,4))
-    #     p[:,:,0] = np.indices((self._width,self._height))[0]
-    #     p[:,:,1] = np.indices((self._width,self._height))[1]
-    #     p[:,:,3] = 1.0/depth_meters[:,:,0]
-    #     p = p.reshape((self._width*self._height,4))
-    #     p = depth_meters.reshape((1,self._width*self._height)) * (self.Hinv @ p.T)
-    #     p = p.T.reshape((self._width,self._height,4))
-    #     p=p[pixel[1],pixel[0],:3]
-    #     return p
+
 
     def get_3D_coords(self,pixel):
         """Converts a pixel coordinate to a 3D point in meters."""
@@ -186,19 +172,13 @@ class RGBD_CamHandler:
         p =  self.Hinv @ p
         return depth * p[:3].T[0]
     
-    # def real_depth(self,pixel):
-    #     """Converts a pixel coordinate to a real depth in meters."""
-    #     model = self._env.model
-    #     extent = model.stat.extent
-    #     near = model.vis.map.znear  * extent
-    #     far = model.vis.map.zfar * extent
-    #     try:
-    #         depth_meters = near / (1 - self.depth_buffer[(pixel[0],pixel[1])] * (1 - near / far))
-    #     except IndexError:
-    #         x = np.clip(pixel[0], 0, self._width - 1)
-    #         y = np.clip(pixel[1], 0, self._height - 1)
-    #         depth_meters = near / (1 - self.depth_buffer[x,y] * (1 - near / far))
-    #     return depth_meters[0]
+    def get_pixel_coords(self,point):
+        """Converts a 3D point in meters to a pixel coordinate."""
+        p = np.array((point[0],point[1],point[2],1))
+        p = self.H @ p.T 
+        p = p/p[2]
+        return np.array([p[1],p[0]],dtype=np.int32)
+
 
     def real_depth(self,pixel):
         """Converts a pixel coordinate to a real depth in meters."""
@@ -233,9 +213,6 @@ class RGBD_CamHandler:
         p = p.reshape((self._width*self._height,4))
         p = depth_meters.reshape((1,self._width*self._height)) * (self.Hinv @ p.T)
         return p[:3].T
-
-
-        
 
     
     def try_ended(self):
@@ -278,7 +255,9 @@ class RLearnHandler:
         pass
 
 class BallTracker:
-    def __init__(self,cam):
+    """Class to track a ball in a video stream. It uses a HSV color space to filter the ball"""
+    def __init__(self,cam,ball_radius = 0.0343):
+        self._ball_radius = ball_radius
         self._cam = cam 
         self._color_lower = np.array([31, 25.0, 25.0])
         self._color_upper = np.array([41, 254.0, 254.0])
@@ -286,7 +265,38 @@ class BallTracker:
         self._radius = deque(maxlen=20)
         self._positions = deque(maxlen=20)
         self._ticks = deque(maxlen=20)
-        self._i = 0
+        self._Kalman = cv2.KalmanFilter(dynamParams=9, measureParams=3, controlParams=0, type=cv2.CV_32F)
+        dt = 1/self._cam.fps
+        half_dt_squared = 0.5 * dt * dt
+        self._Kalman.transitionMatrix = np.array([[1, 0, 0, dt, 0, 0, half_dt_squared, 0, 0],
+                                                 [0, 1, 0, 0, dt, 0, 0, half_dt_squared, 0],
+                                                 [0, 0, 1, 0, 0, dt, 0, 0, half_dt_squared],
+                                                 [0, 0, 0, 1, 0, 0, dt, 0, 0],
+                                                 [0, 0, 0, 0, 1, 0, 0, dt, 0],
+                                                 [0, 0, 0, 0, 0, 1, 0, 0, dt],
+                                                 [0, 0, 0, 0, 0, 0, 1, 0, 0],
+                                                 [0, 0, 0, 0, 0, 0, 0, 1, 0],
+                                                 [0, 0, 0, 0, 0, 0, 0, 0, 1]], dtype=np.float32)
+        self._Kalman.measurementMatrix = np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0],
+                                                   [0, 1, 0, 0, 0, 0, 0, 0, 0],
+                                                   [0, 0, 1, 0, 0, 0, 0, 0, 0]], dtype=np.float32)
+        Tau = np.array([half_dt_squared, half_dt_squared, half_dt_squared, dt, dt, dt, 1, 1, 1], dtype=np.float32).reshape((9,1))
+        var = 0.1
+        Q = Tau * var* Tau.T
+        self._Kalman.processNoiseCov = Q.astype(np.float32)
+
+        
+
+        self._Kalman.measurementNoiseCov = np.array([[ 3.04575243e-03, -8.60463925e-04,  1.25414465e-04],
+                                                    [-8.60463925e-04,  5.48753112e-04, -3.10123593e-05],
+                                                    [ 1.25414465e-04, -3.10123593e-05,  1.01623189e-04]], dtype=np.float32)
+
+        self._i = 0 
+        self._not_found = 10
+        # Kkalman init pas
+
+
+                                                   
          
     
     def _find_circles(self, frame):
@@ -324,17 +334,38 @@ class BallTracker:
         
         frame = self._cam.get_image_array()
         center,radius = self._find_circles(frame)
-        if center is not None:
-            self._ticks.append(self._i)
-            self._pixels.append(center)
-            self._radius.append(radius)
-            self._positions.append(self._cam.get_3D_coords(self._pixels[-1]))
-            self._ticks.append(self._i)
-        else:
-            # self._pixels.clear()
-            # self._positions.clear()
-            pass
+
+        if center is None and self._not_found >= 10: 
+            self._not_found += 1
+            self._pixels.clear()
+            self._radius.clear()
+            self._positions.clear()
+            self._ticks.clear()
+            self._i = 0
+            return 
+        elif center is None and self._not_found < 10:
+            self._not_found += 1
+            predict = self._Kalman.predict()[0:3]
+            position = predict[0:3].flatten()
+            self._positions.append(position)
+            center = self._cam.get_pixel_coords(position)
+            border_position = position+np.array([0,0,self._ball_radius])
+            radius = center[1] - self._cam.get_pixel_coords(border_position)[1]
+        elif center is not None and self._i == 0:
+            self._positions.append(self._cam.get_3D_coords(center))
+            self._Kalman.statePost = np.array([self._positions[-1][0],self._positions[-1][1],self._positions[-1][2],0,0,0,0,0,0], dtype=np.float32)
+            self._not_found = 0
+        elif center is not None and self._i > 0:
+            self._Kalman.predict() 
+            self._positions.append(self._cam.get_3D_coords(center))
+            self._Kalman.correct(np.array([self._positions[-1][0],self._positions[-1][1],self._positions[-1][2]], dtype=np.float32))
+        self._pixels.append(center)
+        self._radius.append(radius)
+        self._ticks.append(self._i)
+        self._positions.append
         self._i += 1
+
+
 
     def _is_free_fall(self):
         fps = self._cam.fps
@@ -368,20 +399,3 @@ class BallTracker:
         cv2.waitKey(1)
             
     
-
-            
-
-
-            
-                
-
-
-
-
-
-        
-
-
-
-
-        
