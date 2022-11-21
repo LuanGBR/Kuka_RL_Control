@@ -7,7 +7,7 @@ import random
 import matplotlib.pyplot as plt
 from collections import deque
 import imutils
-
+from filterpy import kalman
 class MujocoHandler:
     """A handler for the mujoco environment."""
     def __init__(self,model_path):
@@ -265,10 +265,10 @@ class BallTracker:
         self._radius = deque(maxlen=20)
         self._positions = deque(maxlen=20)
         self._ticks = deque(maxlen=20)
-        self._Kalman = cv2.KalmanFilter(dynamParams=9, measureParams=3, controlParams=0, type=cv2.CV_32F)
+        self._Kalman = kalman.KalmanFilter(dim_x=9, dim_z=3)
         dt = 1/self._cam.fps
         half_dt_squared = 0.5 * dt * dt
-        self._Kalman.transitionMatrix = np.array([[1, 0, 0, dt, 0, 0, half_dt_squared, 0, 0],
+        self._Kalman.F = np.array([[1, 0, 0, dt, 0, 0, half_dt_squared, 0, 0],
                                                  [0, 1, 0, 0, dt, 0, 0, half_dt_squared, 0],
                                                  [0, 0, 1, 0, 0, dt, 0, 0, half_dt_squared],
                                                  [0, 0, 0, 1, 0, 0, dt, 0, 0],
@@ -277,17 +277,18 @@ class BallTracker:
                                                  [0, 0, 0, 0, 0, 0, 1, 0, 0],
                                                  [0, 0, 0, 0, 0, 0, 0, 1, 0],
                                                  [0, 0, 0, 0, 0, 0, 0, 0, 1]], dtype=np.float32)
-        self._Kalman.measurementMatrix = np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0],
+        self._Kalman.H = np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0],
                                                    [0, 1, 0, 0, 0, 0, 0, 0, 0],
                                                    [0, 0, 1, 0, 0, 0, 0, 0, 0]], dtype=np.float32)
         Tau = np.array([half_dt_squared, half_dt_squared, half_dt_squared, dt, dt, dt, 1, 1, 1], dtype=np.float32).reshape((9,1))
-        var = 0.1
+        var = 1
         Q = Tau * var* Tau.T
-        self._Kalman.processNoiseCov = Q.astype(np.float32)
+        self._Kalman.Q = Q.astype(np.float32)
+        self. _Kalman.P *= 1000
 
         
 
-        self._Kalman.measurementNoiseCov = np.array([[ 3.04575243e-03, -8.60463925e-04,  1.25414465e-04],
+        self._Kalman.R = np.array([[ 3.04575243e-03, -8.60463925e-04,  1.25414465e-04],
                                                     [-8.60463925e-04,  5.48753112e-04, -3.10123593e-05],
                                                     [ 1.25414465e-04, -3.10123593e-05,  1.01623189e-04]], dtype=np.float32)
 
@@ -345,20 +346,20 @@ class BallTracker:
             return 
         elif center is None and self._not_found < 10:
             self._not_found += 1
-            predict = self._Kalman.predict()[0:3]
-            position = predict[0:3].flatten()
+            self._Kalman.predict()
+            position = self._Kalman.x[:3]
             self._positions.append(position)
             center = self._cam.get_pixel_coords(position)
             border_position = position+np.array([0,0,self._ball_radius])
             radius = center[1] - self._cam.get_pixel_coords(border_position)[1]
         elif center is not None and self._i == 0:
             self._positions.append(self._cam.get_3D_coords(center))
-            self._Kalman.statePost = np.array([self._positions[-1][0],self._positions[-1][1],self._positions[-1][2],0,0,0,0,0,0], dtype=np.float32)
+            self._Kalman.x = np.array([self._positions[-1][0],self._positions[-1][1],self._positions[-1][2],0,0,0,0,0,0], dtype=np.float32)
             self._not_found = 0
         elif center is not None and self._i > 0:
             self._Kalman.predict() 
             self._positions.append(self._cam.get_3D_coords(center))
-            self._Kalman.correct(np.array([self._positions[-1][0],self._positions[-1][1],self._positions[-1][2]], dtype=np.float32))
+            self._Kalman.update(np.array([self._positions[-1][0],self._positions[-1][1],self._positions[-1][2]], dtype=np.float32))
         self._pixels.append(center)
         self._radius.append(radius)
         self._ticks.append(self._i)
@@ -368,32 +369,47 @@ class BallTracker:
 
 
     def _is_free_fall(self):
-        fps = self._cam.fps
-        n=4
-        if len(self._positions) <= n:
-            return False
+        # fps = self._cam.fps
+        # n=4
+        # if len(self._positions) <= n:
+        #     return False
         
-        if len(self._positions) > n:
-            zpos = np.array(self._positions)[-(n+1):,2]
-            vel = np.diff(zpos) * fps
-            acc = np.diff(vel) * fps
-            acc = acc.mean()
-            if np.abs(acc+9.8) < 3 and acc<0:
-                return True
-            else:
-                return False
+        # if len(self._positions) > n:
+        #     zpos = np.array(self._positions)[-(n+1):,2]
+        #     vel = np.diff(zpos) * fps
+        #     acc = np.diff(vel) * fps
+        #     acc = acc.mean()
+        #     if np.abs(acc+9.8) < 3 and acc<0:
+        #         return True
+        #     else:
+        #         return False
+        if np.abs(self._Kalman.x[8]+9.8) < 2:
+            return True 
+        else:
+            return False
     
-    def cv2_show(self,contour=False,path=False):
+    def cv2_show(self,contour=False,path=False,kalman_pred=False):
         frame = self._cam.get_image_array()
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         if self._pixels:
+            falling = self._is_free_fall()
             center,radius = self._pixels[-1],self._radius[-1]
+            if kalman_pred and falling:
+                p = self._Kalman.x[:3]
+                v = self._Kalman.x[3:6]
+                a = self._Kalman.x[6:]
+                t = np.linspace(0,1,20)
+                pred = [x for x in (p+v*t+0.5*a*t**2 for t in t) if x[2]>0 and x[1]<2]
+                pred = [self._cam.get_pixel_coords(p) for p in pred]
+                for i in range(1, len(pred)):
+                    thickness = 2
+                    cv2.line(frame, pred[i - 1], pred[i], (100,100,100), thickness)
             if path:
                 for i in range(1, len(self._pixels)):
                     thickness = int(np.sqrt(20 / float((len(self._pixels))-i + 1)) * 2)
                     cv2.line(frame, self._pixels[i - 1], self._pixels[i], (255, 0, 0), thickness)
             if contour:
-                cv2.circle(frame, center,radius , (0, 255, 0) if self._is_free_fall() else (0,0,255), 2)
+                cv2.circle(frame, center,radius , (0, 255, 0) if  falling else (0,0,255), 2)
             
         cv2.imshow("frame",frame)
         cv2.waitKey(1)

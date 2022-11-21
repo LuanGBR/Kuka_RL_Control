@@ -18,7 +18,7 @@ def main():
             sim.step()
             if cam.update_frame():
                 tracker.update_track()
-                tracker.cv2_show(True, True)
+                tracker.cv2_show(True, True,True)
         
 
 
