@@ -2,6 +2,7 @@
 
 <compiler meshdir="meshes" angle="radian" />
 <option timestep="0.0005" integrator="RK4"/>
+<!-- <option timestep="0.0005" /> -->
 
 
   <size nconmax="1000" njmax="3000"/>
@@ -39,7 +40,7 @@
     <geom name="wall2" type="plane" material="wall" condim="3" pos="-2.40 -0.90 1.125" xyaxes=" 0  1 0 0 0 1" size="2.9 1.125 .5"/>
     <geom name="wall3" type="plane" material="wall" condim="3" pos="+3.00 +2.00 1.125" xyaxes=" 1  0 0 0 0 1" size="5.4 1.125 .5"/>
 
-    <geom name="ceiling"  type="plane" material="wall" condim="3" pos="+3.00 -0.90  2.25" xyaxes=" 1 0 0 0 -1 0" size="5.4 2.9 .5"/>
+    <!-- <geom name="ceiling"  type="plane" material="wall" condim="3" pos="+3.00 -0.90  2.25" xyaxes=" 1 0 0 0 -1 0" size="5.4 2.9 .5"/> -->
     
     <geom name="mesa0" type="mesh" pos="+3.5 -0.8  0.0"   mesh="table120" xyaxes="0 1 0 0 0 1"/>
     <geom name="mesa1" type="mesh" pos="+1.7 -2.0  0.0"   mesh="table140" xyaxes="1 0 0 0 0 1"/> 
@@ -49,8 +50,9 @@
     <geom name="controller" type="box" pos="3.55 1.37 0.625" size="0.26 0.40 0.625" />
 
     <light name="spotlight0" pos="-0.427 -2.34 2.25"  diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
-    <light name="spotlight1" pos="-0.427 0.66 2.25"  diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
-    <light name="spotlight2" pos="1.407 -2.34 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlightl0" pos="-0.427 0.66 2." directional="true" dir="0 1 0"/>
+    <light name="spotlight2" pos="1.407 -2.34 2.24" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
+    <light name="spotlightl2" pos="1.407 0.66 2.0" directional="true" dir="0 0 1"/>
     <light name="spotlight3" pos="1.407 0.66 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
     <light name="spotlight4" pos="3.24 -2.34 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
     <light name="spotlight5" pos="3.24 0.66 2.25" diffuse="1 1 1 " specular="0.05 0.05 0.05"  cutoff="80"/>
@@ -64,8 +66,15 @@
       <joint name="ball" type="free" damping="0"/>
       <geom name="ball" type="sphere" size="0.0343" material="ball_material"/>
     </body>
+
+    
     
   </worldbody>
+
+  <contact>
+        <exclude name="exclude_ball_body_cestinho" body1="ball" body2="cestinho"/>
+       
+</contact>
 
   <include file="kr16_2.xml" />
   

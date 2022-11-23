@@ -1,4 +1,5 @@
-<mujoco model="kuka_kr16_2">
+
+    <mujoco model="kuka_kr16_2">
 
     <asset>
         <mesh name="base_link" file="base_link.stl" />
@@ -35,6 +36,29 @@
                                     <geom type="mesh" mesh="link_6" rgba="0.95 0.36 0.1 1" density="1"/>
                                     <body name="cestinho" pos="0.155 0 0">
                                         <geom type="mesh" mesh="cestinho" rgba="0.95 0.36 0.1 1" xyaxes="0 1 0 0 0 1" density="1"/>
+                                        <body name="target" pos="0.12425 0 -0.04">
+                                           <geom type="box" pos="0.07 0.0 0.0" size="0.0216 0.09325 0.001" xyaxes="0.0 -1.0 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0666 0.0216 0.0" size="0.0216 0.09325 0.001" xyaxes="0.3085 -0.9512 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0566 0.0411 0.0" size="0.0216 0.09325 0.001" xyaxes="0.5876 -0.8092 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0411 0.0566 0.0" size="0.0216 0.09325 0.001" xyaxes="0.8092 -0.5876 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0216 0.0666 0.0" size="0.0216 0.09325 0.001" xyaxes="0.9512 -0.3085 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0 0.07 0.0" size="0.0216 0.09325 0.001" xyaxes="1.0 -0.0 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0216 0.0666 0.0" size="0.0216 0.09325 0.001" xyaxes="0.9512 0.3085 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0411 0.0566 0.0" size="0.0216 0.09325 0.001" xyaxes="0.8092 0.5876 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0566 0.0411 0.0" size="0.0216 0.09325 0.001" xyaxes="0.5876 0.8092 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0666 0.0216 0.0" size="0.0216 0.09325 0.001" xyaxes="0.3085 0.9512 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.07 0.0 0.0" size="0.0216 0.09325 0.001" xyaxes="0.0 1.0 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0666 -0.0216 0.0" size="0.0216 0.09325 0.001" xyaxes="-0.3085 0.9512 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0566 -0.0411 0.0" size="0.0216 0.09325 0.001" xyaxes="-0.5876 0.8092 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0411 -0.0566 0.0" size="0.0216 0.09325 0.001" xyaxes="-0.8092 0.5876 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0216 -0.0666 0.0" size="0.0216 0.09325 0.001" xyaxes="-0.9512 0.3085 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="-0.0 -0.07 0.0" size="0.0216 0.09325 0.001" xyaxes="-1.0 0.0 0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0216 -0.0666 0.0" size="0.0216 0.09325 0.001" xyaxes="-0.9512 -0.3085 -0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0411 -0.0566 0.0" size="0.0216 0.09325 0.001" xyaxes="-0.8092 -0.5876 -0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0566 -0.0411 0.0" size="0.0216 0.09325 0.001" xyaxes="-0.5876 -0.8092 -0.0 0 0 -1" rgba="0 0 0 0" />
+                                            <geom type="box" pos="0.0666 -0.0216 0.0" size="0.0216 0.09325 0.001" xyaxes="-0.3085 -0.9512 -0.0 0 0 -1" rgba="0 0 0 0" />
+                                           <geom type="cylinder" pos="0.0 0.0 -0.09325" size="0.070 0.001 0.001" rgba="0 0 0 0" />
+                                        </body>
                                     </body>
                                 </body>
                             </body>
@@ -47,7 +71,7 @@
     <actuator >
                
 
-                <intvelocity name="a1_intvel" joint="joint_a1" actrange="-3.22886 3.22886" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" kp="100000"/>
+                <intvelocity name="a1_intvel" joint="joint_a1" actrange="-3.22886 3.22886" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" kp="80000"/>
                 <intvelocity name="a2_intvel" joint="joint_a2" actrange="-2.70526 0.610865" ctrllimited="true" ctrlrange="-2.72271363311 2.72271363311" kp="64000"/> 
                 <intvelocity name="a3_intvel" joint="joint_a3" actrange="-2.26893 2.68781" ctrllimited="true" ctrlrange="-5.75958653158 5.75958653158" kp="32000"/>
                 <intvelocity name="a4_intvel" joint="joint_a4" ctrllimited="true" actrange="-6.10865 6.10865" ctrlrange="-5.75958653158 5.75958653158" kp="400.0"/>
@@ -70,3 +94,6 @@
 
 
 
+
+    
+    
