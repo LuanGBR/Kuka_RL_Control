@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 from collections import deque
 import imutils
 from filterpy import kalman
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.optimizers import Adam
+from functools import lru_cache
 class MujocoHandler:
     """A handler for the mujoco environment."""
     def __init__(self,model_path):
@@ -16,6 +20,7 @@ class MujocoHandler:
         self._model = model
         self._data = data
         self._cam_aux_count = 0
+        self._max_velocities = np.array([2.72271363311,2.72271363311,5.75958653158,5.75958653158,5.75958653158,10.7337748998]).astype(np.float32)
 
     @property
     def model(self):
@@ -41,8 +46,13 @@ class MujocoHandler:
         self._cam_aux_count += 1
         mujoco.mj_step(self._model, self._data)
     
-    def set_state(self, init_pos, init_vel):
-        self.reset()
+    def set_state(self, init_pos, init_vel,reset_arm=True):
+        if reset_arm:
+            self.reset()
+        else:
+            arm_pos = self._data.qpos[7:13]
+            self.reset()
+            self._data.qpos[7:13] = arm_pos
         self._data.qpos[0:3] = init_pos
         self._data.qvel[0:3] = init_vel
         mujoco.mj_forward(self._model, self._data)
@@ -52,17 +62,57 @@ class MujocoHandler:
         mujoco.mj_forward(self._model, self._data)
     
     def set_random_state(self):
-        init_pos = np.array([0.5,-2,1]) 
-        V_abs = np.random.uniform(4,5.5)
-        V_theta = np.random.uniform(np.pi/4,np.pi/3)
+        init_pos = np.array([-0.966,-2,1]) 
+        V_abs = np.random.uniform(4.5,5.5)
+        # V_theta = np.random.uniform(np.pi/4,np.pi/3) # TODO: check if this is the right range
+        V_theta = np.pi/4
         vx = 0
         vy = V_abs*np.cos(V_theta)
         vz = V_abs*np.sin(V_theta)
         init_vel = np.array([vx,vy,vz])
 
-        
+        self.set_state(init_pos, init_vel,reset_arm=False)
+        return np.concatenate((init_pos, init_vel))
 
-        self.set_state(init_pos, init_vel)
+    def get_ball_state(self):
+        return np.concatenate((self._data.body("ball").xpos, self._data.body("ball").cvel[3:6]))
+    
+    def get_arm_state(self):
+        return (self._data.qpos[7:13])
+
+    def get_ball(self):
+        return self._env.data.body("ball")
+
+    def take_action(self,action,k):
+        ternary = np.base_repr(action, base=3)
+        ternary = ternary.zfill(6)
+        for i,n in enumerate(ternary):
+            self._data.ctrl[i] = (int(n) - 1) * k * self._max_velocities[i]
+    
+    def get_n_contacts(self):
+        return self._data.ncon
+    
+    def get_body_contacts(self):
+        body_pairs =  [(self._model.body(self._model.geom(contact.geom1).bodyid[0]).name,self._model.body(self._model.geom(contact.geom2).bodyid[0]).name) for contact in self._data.contact]
+        return body_pairs
+    def is_ball_in_target(self):
+        body_pairs = self.get_body_contacts()
+        if ("ball","target") in body_pairs or ("target","ball") in body_pairs:
+            return True
+        else:
+            return False
+    
+    def is_ball_on_floor(self):
+        body_pairs = self.get_body_contacts()
+        if ("ball","world") in body_pairs or ("world","ball") in body_pairs:
+            return True
+        else:
+            return False
+    
+    def get_basket_position(self):
+        return self._data.body("target").xpos
+    
+    
 
 
 
@@ -70,8 +120,10 @@ class RGBD_CamHandler:
     """A handler for the RGBD camera. It is used to get the RGBD images from the environment and the 3D coordinates of a pixel."""
     def __init__(self,environment,size=500,windowed=False,fps=60):
         self._env = environment
+        self._env._cam_aux_count = 0
         model = self._env.model
         data = self._env.data
+        self._size = size
         self._width = size
         self._height = size
         self._windowed = windowed
@@ -148,7 +200,7 @@ class RGBD_CamHandler:
         return np.linalg.inv(self._H)
 
     def update_frame(self,simulate_fps=True):
-        if  self._env._cam_aux_count > self._ticks_per_frame or not simulate_fps:
+        if self._env._cam_aux_count > self._ticks_per_frame or not simulate_fps:
             self._env._cam_aux_count = 0
             if self._windowed:
                 self._viewer.render()
@@ -174,7 +226,7 @@ class RGBD_CamHandler:
     
     def get_pixel_coords(self,point):
         """Converts a 3D point in meters to a pixel coordinate."""
-        p = np.array((point[0],point[1],point[2],1))
+        p = np.array(((point[0],point[1],point[2],1)))
         p = self.H @ p.T 
         p = p/p[2]
         return np.array([p[1],p[0]],dtype=np.int32)
@@ -215,8 +267,14 @@ class RGBD_CamHandler:
         return p[:3].T
 
     
-    def try_ended(self):
-        return self._env.time > 10
+    def reset(self):
+        model = self._env.model
+        data = self._env.data
+        self._env._cam_aux_count = self.fps + 1
+        if self._windowed:
+            pass
+        else:
+            self.img_buffer,self.depth_buffer = self._viewer.read_pixels(camid=0,depth=True)
 
 class Utils:
     def plot_3D_points(points):
@@ -236,23 +294,6 @@ class Utils:
         return fig,ax
         
 
-
-class RLearnHandler:
-    def __init__(self,environment):
-        self._environment = environment
-        
-
-    def get_action(self, state):
-        pass
-
-    def get_reward(self, action):
-        pass
-
-    def get_state(self):
-        pass
-
-    def get_next_state(self, action):
-        pass
 
 class BallTracker:
     """Class to track a ball in a video stream. It uses a HSV color space to filter the ball"""
@@ -324,6 +365,8 @@ class BallTracker:
             M = cv2.moments(c)
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
             radius = int(radius)
+            if radius<2:
+                return None,None
 
         
         return center,radius
@@ -335,8 +378,8 @@ class BallTracker:
         
         frame = self._cam.get_image_array()
         center,radius = self._find_circles(frame)
-
-        if center is None and self._not_found >= 10: 
+        MISSING_THRESHOLD = 30
+        if center is None and self._not_found >= MISSING_THRESHOLD:
             self._not_found += 1
             self._pixels.clear()
             self._radius.clear()
@@ -344,13 +387,13 @@ class BallTracker:
             self._ticks.clear()
             self._i = 0
             return 
-        elif center is None and self._not_found < 10:
+        elif center is None and self._not_found < MISSING_THRESHOLD:
             self._not_found += 1
             self._Kalman.predict()
-            position = self._Kalman.x[:3]
+            position = np.array(self._Kalman.x[:3]).flatten()
             self._positions.append(position)
-            center = self._cam.get_pixel_coords(position)
-            border_position = position+np.array([0,0,self._ball_radius])
+            center = self._cam.get_pixel_coords(position).flatten()
+            border_position = np.array(position)+np.array([0,0,self._ball_radius])
             radius = center[1] - self._cam.get_pixel_coords(border_position)[1]
         elif center is not None and self._i == 0:
             self._positions.append(self._cam.get_3D_coords(center))
@@ -367,7 +410,8 @@ class BallTracker:
         self._i += 1
 
 
-
+    def is_tracking(self):
+        return len(self._pixels) > 0
     def _is_free_fall(self):
         # fps = self._cam.fps
         # n=4
@@ -387,6 +431,14 @@ class BallTracker:
             return True 
         else:
             return False
+    def ball_position(self):
+        if len(self._positions) > 0:
+            return self._positions[-1]
+        else:
+            return None
+    
+    def ball_velocity(self):
+        return np.array(self._Kalman.x[3:6]).flatten()
     
     def cv2_show(self,contour=False,path=False,kalman_pred=False):
         frame = self._cam.get_image_array()
@@ -413,5 +465,239 @@ class BallTracker:
             
         cv2.imshow("frame",frame)
         cv2.waitKey(1)
-            
+    def reset(self):
+        self.__init__(self._cam)
+
+
+class DQN:
+    def __init__(self, params: dict = {}):
+        """params format: 
+                {memory_size: int,
+                gamma: float,
+                epsilon: float,
+                epsilon_decay: float,
+                epsilon_min: float,
+                learning_rate: float,
+                tau: float,
+                batch_size: int,
+                observation_space: int,
+                action_space: int}"""
+        self.observation_space = params.get("observation_space", 6)
+        self.action_space = params.get("action_space", 27)
+        self._memory = deque(maxlen=params.get('memory_size', 1000))
+        self._gamma = params.get('gamma', 0.95)
+        self._epsilon = params.get('epsilon', 1.0)
+        self._epsilon_decay = params.get('epsilon_decay', 0.995)
+        self._epsilon_min = params.get('epsilon_min', 0.01)
+        self._learning_rate = params.get('learning_rate', 0.001)
+        self._tau = params.get('tau', 0.125)
+        self._batch_size = params.get('batch_size', 32)
+        self._model = self._create_model()
+        self._target_model = self._create_model()
+
+
+    def _create_model(self):
+        model   = Sequential()
+        state_shape  = 12 # number of state variables
+        model.add(Dense(24, input_dim=state_shape, activation="relu"))
+        model.add(Dense(48, activation="relu"))
+        model.add(Dense(96, activation="relu"))
+        model.add(Dense(729)) #number of actions
+        model.compile(loss="mean_squared_error",
+            optimizer=Adam(lr=self._learning_rate))
+
+        model.summary()
+        return model
+
+    def remember(self, state, action, reward, next_state, done):
+        self._memory.append((state, action, reward, next_state, done))
+
+    # def replay(self):
+    #     if len(self._memory) < self._batch_size:
+    #         return
+    #     minibatch = random.sample(self._memory, self._batch_size)
+    #     for state, action, reward, next_state, done in minibatch:
+    #         target = reward
+    #         if not done:
+    #             target = (reward + self._gamma * 
+    #                 np.amax(self._target_model.predict(next_state)[0]))
+    #         target_f = self._model.predict(state)
+    #         target_f[0][action] = target
+    #         self._model.fit(state, target_f, epochs=1, verbose=0)
+    #     if self._epsilon > self._epsilon_min:
+    #         self._epsilon *= self._epsilon_decay
+
+    def replay(self):
+        batch_size = self._batch_size
+        if len(self._memory) < batch_size: 
+            return
+        samples = random.sample(self._memory, batch_size)
+        for sample in samples:
+            state, action, reward, new_state, done = sample
+            target = self._target_model.predict(state,verbose=0,use_multiprocessing=True,workers=4)
+            if done:
+                target[0][action] = reward
+            else:
+                Q_future = max(self._target_model.predict(new_state,verbose=0,use_multiprocessing=True,workers=4)[0])
+                target[0][action] = reward + Q_future * self._gamma
+            self._model.fit(state, target, epochs=1, verbose=0,use_multiprocessing=True,workers=4)
+
+    def target_train(self):
+        weights = self._model.get_weights()
+        target_weights = self._target_model.get_weights()
+        for i in range(len(target_weights)):
+            target_weights[i] = weights[i]
+        self._target_model.set_weights(target_weights)
     
+    def act(self, state):
+        if np.random.rand() <= self._epsilon:
+            return np.random.randint(0,728)
+        act_values = self._model.predict(state,verbose=0)
+        return np.argmax(act_values[0])
+    
+    def save(self, name="model.h5"):
+        self._target_model.save(name,save_format="h5")
+
+            
+
+class TrainingEnv:
+    def __init__(self,params: dict = {}):
+        self._sim = MujocoHandler(params.get("env_path","environment.xml"))
+        self._cam = RGBD_CamHandler(self._sim,size=params.get("image_size",600),windowed=False,fps=params.get("fps",30))
+        self._cam.R = params.get("cam_R",np.array([ [0., 0., -1.], [0., 1., 0.],[-1., 0., 0.]]))
+        self._cam.t = params.get("cam_t",np.array([[0.7],[ 0. ],[4. ]]))
+        self._dqn_agent = DQN(params)
+        self._episodes = params.get("episodes",100)
+        self._max_duration = params.get("max_duration",6)
+        self._z_height = params.get("z_height",0.5)
+        self._last_init_state = None
+        self._tracker = None
+        self._floor_collision_threshold = params.get("floor_collision_threshold",0.3)
+
+    def _aparent_state(self,normalised=False):
+        self._tracker.update_track()
+        self._tracker.cv2_show(True,True,True)
+        pos = self._tracker.ball_position()
+        vel = self._tracker.ball_velocity()
+        arm = self._sim.get_arm_state()
+        state = np.concatenate((pos,vel,arm))
+        if normalised:
+            normalised_state = state / np.array([10.8,5.8,2.25,10,10,10,3.22886,2.70526,2.26893,6.10865,2.26892802759,6.10865])
+            return normalised_state
+        else:
+            return state
+    def train(self):
+        self._tracker = BallTracker(self._cam)
+        try:
+            for episode in range(self._episodes):
+
+                self._last_init_state = list(self._sim.set_random_state())
+                self._cam.reset()
+                self._tracker.reset()
+                self._tracker.update_track()
+                while not self._tracker.is_tracking() :
+                    while not self._cam.update_frame():
+                        self._sim.step()
+                    self._tracker.update_track()
+                self._run_episode()
+                print (f"Episode {episode} finished",self._sim.is_ball_in_target())
+
+
+        finally:
+            self._dqn_agent.save()
+        
+                
+            
+
+
+        
+    def _run_episode(self):
+        cur_state = self._aparent_state(normalised=True).reshape(1,12)
+        while self._sim.time < self._max_duration:
+            action = self._dqn_agent.act(cur_state)
+            self._sim.take_action(action,0.5)
+            while not self._cam.update_frame():
+                self._sim.step()
+            if not self._tracker.is_tracking():
+                break
+            new_state = self._aparent_state(normalised=True).reshape(1,12)
+            reward,done = self._reward_n_done()
+            self._dqn_agent.remember(cur_state, action, 
+                reward, new_state, done)
+            
+            self._dqn_agent.replay()
+            self._dqn_agent.target_train()
+            print (f"Time: {self._sim.time} Reward: {reward} Done: {done}")
+            cur_state = new_state
+            if done:
+                break
+
+ 
+    def _intersect_point(self,init_state,z_height):
+        t = np.roots([9.81/2,init_state[5],init_state[2]-z_height]).max()
+        xt = init_state[0] + init_state[3]*t
+        yt = init_state[1] + init_state[4]*t
+        zt = 0.5
+        return np.array([xt,yt,zt])
+
+    def _reward_n_done(self):
+        score = 0
+        done = False
+
+        state = self._sim.get_arm_state()
+        if (state[0] < -3.22 or state[0] > 3.22):
+            score -= 100
+            done = True
+        if (state[1] < -2.70 or state[1] > 0.61):
+            score -= 100
+            done = True
+        if (state[2] < -2.26 or state[2] > 2.26):
+            score -= 100
+            done = True
+        if (state[3] < -6.10 or state[3] > 6.10):
+            score -= 100
+            done = True
+        if (state[4] < -2.26 or state[4] > 2.26):
+            score -= 100
+            done = True
+        if (state[5] < -6.10 or state[5] > 6.10):
+            score -= 100
+            done = True
+
+
+        target = self._intersect_point(self._last_init_state,self._z_height)
+        pos = self._sim.get_basket_position()
+
+        distance = np.linalg.norm(target-pos)
+        score -= distance*10
+
+        if distance < 0.1:
+            score += 100
+
+        z = pos[2]
+        if z < self._floor_collision_threshold:
+            score -= 100
+            if z < self._floor_collision_threshold:
+                done = True
+        if self._sim.get_n_contacts() > 0:
+            if self._sim.is_ball_in_target():
+                done = True
+                score += 100
+            if self._sim.is_ball_on_floor():
+                score -= 100
+                done = True
+        
+        if self._sim.time > self._max_duration:
+            done = True
+       
+        
+        return score,done
+
+    
+
+
+        
+
+
+        
+            
