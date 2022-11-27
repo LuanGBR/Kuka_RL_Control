@@ -1,0 +1,20 @@
+filterpy==1.4.5
+glfw==2.5.5
+imutils==0.5.4
+keras==2.11.0
+matplotlib==3.6.2
+mujoco==2.3.0
+-e git+https://github.com/LuanGBR/mujoco-python-viewer.git@0942bed788e20f2274e4e962a36b86f05c096120#egg=mujoco_python_viewer
+numpy==1.23.5
+opencv-python==4.6.0.66
+PyOpenGL==3.1.6
+scipy==1.9.3
+tensorboard==2.11.0
+tensorboard-data-server==0.6.1
+tensorboard-plugin-wit==1.8.1
+tensorflow==2.11.0
+tensorflow-estimator==2.11.0
+tensorflow-io-gcs-filesystem==0.28.0
+PyYAML==5.4.1
+
+

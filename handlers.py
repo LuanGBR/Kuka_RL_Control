@@ -12,6 +12,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 from functools import lru_cache
+from scipy.spatial.transform import Rotation
 class MujocoHandler:
     """A handler for the mujoco environment."""
     def __init__(self,model_path):
@@ -46,14 +47,9 @@ class MujocoHandler:
         self._cam_aux_count += 1
         mujoco.mj_step(self._model, self._data)
     
-    def set_state(self, init_pos, init_vel,reset_arm=True):
-        if reset_arm:
-            self.reset()
-        else:
-            arm_pos = self._data.qpos[7:13]
-            self.reset()
-            self._data.qpos[7:13] = arm_pos
-        self._data.qpos[0:3] = init_pos
+    def set_state(self, init_pos, init_vel):
+        self._model.qpos0[0:3] = init_pos
+        self.reset()
         self._data.qvel[0:3] = init_vel
         mujoco.mj_forward(self._model, self._data)
     
@@ -71,7 +67,7 @@ class MujocoHandler:
         vz = V_abs*np.sin(V_theta)
         init_vel = np.array([vx,vy,vz])
 
-        self.set_state(init_pos, init_vel,reset_arm=False)
+        self.set_state(init_pos, init_vel)
         return np.concatenate((init_pos, init_vel))
 
     def get_ball_state(self):
@@ -111,6 +107,9 @@ class MujocoHandler:
     
     def get_basket_position(self):
         return self._data.body("target").xpos
+    
+    def get_basket_orientation(self):
+        return self._data.body("target").xmat.reshape((3,3))
     
     
 
@@ -484,10 +483,10 @@ class DQN:
                 action_space: int}"""
         self.observation_space = params.get("observation_space", 6)
         self.action_space = params.get("action_space", 27)
-        self._memory = deque(maxlen=params.get('memory_size', 1000))
+        self._memory = deque(maxlen=params.get('memory_size', 2000))
         self._gamma = params.get('gamma', 0.95)
-        self._epsilon = params.get('epsilon', 1.0)
-        self._epsilon_decay = params.get('epsilon_decay', 0.995)
+        self._epsilon = params.get('epsilon', 0.9)
+        self._epsilon_decay = params.get('epsilon_decay', 0.98)
         self._epsilon_min = params.get('epsilon_min', 0.01)
         self._learning_rate = params.get('learning_rate', 0.001)
         self._tau = params.get('tau', 0.125)
@@ -551,12 +550,22 @@ class DQN:
     
     def act(self, state):
         if np.random.rand() <= self._epsilon:
+            print(f"{self._epsilon:1.4f} random ",end="")
             return np.random.randint(0,728)
-        act_values = self._model.predict(state,verbose=0)
-        return np.argmax(act_values[0])
+        else:
+            print(f"{self._epsilon:1.4f} predict ",end="")
+            act_values = self._model.predict(state,verbose=0)
+            return np.argmax(act_values[0])
+
+    def epsilon_update(self):
+        if self._epsilon > self._epsilon_min:
+            self._epsilon *= self._epsilon_decay
     
     def save(self, name="model.h5"):
         self._target_model.save(name,save_format="h5")
+        #save memory
+        np.save("memory.npy", np.array(self._memory))
+
 
             
 
@@ -568,7 +577,7 @@ class TrainingEnv:
         self._cam.t = params.get("cam_t",np.array([[0.7],[ 0. ],[4. ]]))
         self._dqn_agent = DQN(params)
         self._episodes = params.get("episodes",100)
-        self._max_duration = params.get("max_duration",6)
+        self._max_duration = params.get("max_sim_time",6)
         self._z_height = params.get("z_height",0.5)
         self._last_init_state = None
         self._tracker = None
@@ -631,6 +640,7 @@ class TrainingEnv:
             cur_state = new_state
             if done:
                 break
+        self._dqn_agent.epsilon_update()
 
  
     def _intersect_point(self,init_state,z_height):
@@ -645,24 +655,22 @@ class TrainingEnv:
         done = False
 
         state = self._sim.get_arm_state()
-        if (state[0] < -3.22 or state[0] > 3.22):
+        if ((not -3.22 < state[0] < 3.22) 
+            or (not -2.70 < state[1] < 0.61) 
+            or (not -2.26 < state[2] < 2.68) 
+            or (not -6.10 < state[3] < 6.10) 
+            or (not -2.26 < state[4] < 2.26) 
+            or (not -6.10 < state[5] < 6.10)):
+
+
             score -= 100
             done = True
-        if (state[1] < -2.70 or state[1] > 0.61):
-            score -= 100
-            done = True
-        if (state[2] < -2.26 or state[2] > 2.26):
-            score -= 100
-            done = True
-        if (state[3] < -6.10 or state[3] > 6.10):
-            score -= 100
-            done = True
-        if (state[4] < -2.26 or state[4] > 2.26):
-            score -= 100
-            done = True
-        if (state[5] < -6.10 or state[5] > 6.10):
-            score -= 100
-            done = True
+
+        r= Rotation.from_matrix(self._sim.get_basket_orientation())
+        basket_angle = r.as_euler('xyz',degrees=True)[0]
+        score -= abs(basket_angle)
+
+
 
 
         target = self._intersect_point(self._last_init_state,self._z_height)

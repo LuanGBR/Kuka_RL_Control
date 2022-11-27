@@ -40,7 +40,7 @@
     <geom name="wall2" type="plane" material="wall" condim="3" pos="-2.40 -0.90 1.125" xyaxes=" 0  1 0 0 0 1" size="2.9 1.125 .5"/>
     <geom name="wall3" type="plane" material="wall" condim="3" pos="+3.00 +2.00 1.125" xyaxes=" 1  0 0 0 0 1" size="5.4 1.125 .5"/>
 
-    <!-- <geom name="ceiling"  type="plane" material="wall" condim="3" pos="+3.00 -0.90  2.25" xyaxes=" 1 0 0 0 -1 0" size="5.4 2.9 .5"/> -->
+    <geom name="ceiling"  type="plane" material="wall" condim="3" pos="+3.00 -0.90  2.25" xyaxes=" 1 0 0 0 -1 0" size="5.4 2.9 .5"/>
     
     <geom name="mesa0" type="mesh" pos="+3.5 -0.8  0.0"   mesh="table120" xyaxes="0 1 0 0 0 1"/>
     <geom name="mesa1" type="mesh" pos="+1.7 -2.0  0.0"   mesh="table140" xyaxes="1 0 0 0 0 1"/> 
