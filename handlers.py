@@ -12,10 +12,12 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 from functools import lru_cache
+from numpy.typing import ArrayLike
 class MujocoHandler:
     """A handler for the mujoco environment."""
-    def __init__(self,model_path):
-        model = mujoco.MjModel.from_xml_path(model_path)
+    def __init__(self,model_path: str, initial_pose: ArrayLike =(0.0,-1.0,0.0,0.0,0.0,0.1)):
+        model = mujoco.MjModel.from_xml_path(model_path)        
+        model.qpos0[7:13] = np.array(initial_pose)
         data = mujoco.MjData(model)
         self._model = model
         self._data = data
@@ -46,14 +48,9 @@ class MujocoHandler:
         self._cam_aux_count += 1
         mujoco.mj_step(self._model, self._data)
     
-    def set_state(self, init_pos, init_vel,reset_arm=True):
-        if reset_arm:
-            self.reset()
-        else:
-            arm_pos = self._data.qpos[7:13]
-            self.reset()
-            self._data.qpos[7:13] = arm_pos
-        self._data.qpos[0:3] = init_pos
+    def set_state(self, init_pos, init_vel):
+        self._model.qpos0[0:3] = init_pos
+        self.reset()
         self._data.qvel[0:3] = init_vel
         mujoco.mj_forward(self._model, self._data)
     
@@ -71,7 +68,7 @@ class MujocoHandler:
         vz = V_abs*np.sin(V_theta)
         init_vel = np.array([vx,vy,vz])
 
-        self.set_state(init_pos, init_vel,reset_arm=False)
+        self.set_state(init_pos, init_vel)
         return np.concatenate((init_pos, init_vel))
 
     def get_ball_state(self):
@@ -486,9 +483,9 @@ class DQN:
         self.action_space = params.get("action_space", 27)
         self._memory = deque(maxlen=params.get('memory_size', 1000))
         self._gamma = params.get('gamma', 0.95)
-        self._epsilon = params.get('epsilon', 1.0)
+        self._epsilon = params.get('epsilon', 0.2)
         self._epsilon_decay = params.get('epsilon_decay', 0.995)
-        self._epsilon_min = params.get('epsilon_min', 0.01)
+        self._epsilon_min = params.get('epsilon_min', 0.03)
         self._learning_rate = params.get('learning_rate', 0.001)
         self._tau = params.get('tau', 0.125)
         self._batch_size = params.get('batch_size', 32)
@@ -550,11 +547,18 @@ class DQN:
         self._target_model.set_weights(target_weights)
     
     def act(self, state):
+        
+
+
         if np.random.rand() <= self._epsilon:
             return np.random.randint(0,728)
         act_values = self._model.predict(state,verbose=0)
         return np.argmax(act_values[0])
-    
+
+    def epsilon_decay(self):
+        if self._epsilon > self._epsilon_min:
+            self._epsilon *= self._epsilon_decay
+
     def save(self, name="model.h5"):
         self._target_model.save(name,save_format="h5")
 
@@ -622,11 +626,11 @@ class TrainingEnv:
                 break
             new_state = self._aparent_state(normalised=True).reshape(1,12)
             reward,done = self._reward_n_done()
-            self._dqn_agent.remember(cur_state, action, 
-                reward, new_state, done)
+            # self._dqn_agent.remember(cur_state, action, 
+            #     reward, new_state, done)
             
-            self._dqn_agent.replay()
-            self._dqn_agent.target_train()
+            # self._dqn_agent.replay()
+            # self._dqn_agent.target_train()
             print (f"Time: {self._sim.time} Reward: {reward} Done: {done}")
             cur_state = new_state
             if done:
@@ -645,22 +649,14 @@ class TrainingEnv:
         done = False
 
         state = self._sim.get_arm_state()
-        if (state[0] < -3.22 or state[0] > 3.22):
-            score -= 100
-            done = True
-        if (state[1] < -2.70 or state[1] > 0.61):
-            score -= 100
-            done = True
-        if (state[2] < -2.26 or state[2] > 2.26):
-            score -= 100
-            done = True
-        if (state[3] < -6.10 or state[3] > 6.10):
-            score -= 100
-            done = True
-        if (state[4] < -2.26 or state[4] > 2.26):
-            score -= 100
-            done = True
-        if (state[5] < -6.10 or state[5] > 6.10):
+        if ((not -3.22 < state[0] < 3.22) 
+            or (not -2.70 < state[1] < 0.61) 
+            or (not -2.26 < state[2] < 2.68) 
+            or (not -6.10 < state[3] < 6.10) 
+            or (not -2.26 < state[4] < 2.26) 
+            or (not -6.10 < state[5] < 6.10)):
+
+
             score -= 100
             done = True
 
