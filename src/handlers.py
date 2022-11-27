@@ -13,6 +13,44 @@ from keras.layers import Dense
 from keras.optimizers import Adam
 from functools import lru_cache
 from scipy.spatial.transform import Rotation
+
+
+from keras.callbacks import TensorBoard
+
+#...
+
+# Own Tensorboard class
+class ModifiedTensorBoard(TensorBoard):
+
+    # Overriding init to set initial step and writer (we want one log file for all .fit() calls)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.step = 1
+        self.writer = tf.summary.FileWriter(self.log_dir)
+
+    # Overriding this method to stop creating default log writer
+    def set_model(self, model):
+        pass
+
+    # Overrided, saves logs with our step number
+    # (otherwise every .fit() will start writing from 0th step)
+    def on_epoch_end(self, epoch, logs=None):
+        self.update_stats(**logs)
+
+    # Overrided
+    # We train for one batch only, no need to save anything at epoch end
+    def on_batch_end(self, batch, logs=None):
+        pass
+
+    # Overrided, so won't close writer
+    def on_train_end(self, _):
+        pass
+
+    # Custom method for saving own metrics
+    # Creates writer, writes custom metrics and closes writer
+    def update_stats(self, **stats):
+        self._write_logs(stats, self.step)
+
 class MujocoHandler:
     """A handler for the mujoco environment."""
     def __init__(self,model_path):
@@ -493,6 +531,8 @@ class DQN:
         self._batch_size = params.get('batch_size', 32)
         self._model = self._create_model()
         self._target_model = self._create_model()
+        self._target_train_counter = 0
+        self._target_train_interval = 6
 
 
     def _create_model(self):
@@ -541,12 +581,14 @@ class DQN:
                 target[0][action] = reward + Q_future * self._gamma
             self._model.fit(state, target, epochs=1, verbose=0,use_multiprocessing=True,workers=4)
 
-    def target_train(self):
-        weights = self._model.get_weights()
-        target_weights = self._target_model.get_weights()
-        for i in range(len(target_weights)):
-            target_weights[i] = weights[i]
-        self._target_model.set_weights(target_weights)
+    def target_train(self,done):
+        if done:
+            self._target_train_counter += 1
+        if self._target_train_counter >= self._target_train_interval:
+            self._target_model.set_weights(self._model.get_weights())
+            self._target_train_counter = 0
+
+        
     
     def act(self, state):
         if np.random.rand() <= self._epsilon:
@@ -635,7 +677,7 @@ class TrainingEnv:
                 reward, new_state, done)
             
             self._dqn_agent.replay()
-            self._dqn_agent.target_train()
+            self._dqn_agent.target_train(done=done)
             print (f"Time: {self._sim.time} Reward: {reward} Done: {done}")
             cur_state = new_state
             if done:
@@ -677,7 +719,7 @@ class TrainingEnv:
         pos = self._sim.get_basket_position()
 
         distance = np.linalg.norm(target-pos)
-        score -= distance*10
+        score -= distance*100
 
         if distance < 0.1:
             score += 100

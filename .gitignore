@@ -1,2 +1,8 @@
 URDF2MJCF
 simulacao/reference/kuka_experimental
+MUJOCO_LOG.TXT
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*/__pycache__/
+*.py[cod]
