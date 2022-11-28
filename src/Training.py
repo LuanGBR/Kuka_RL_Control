@@ -21,6 +21,14 @@ Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
 
+def continous_barrier_penalty(x, x_min, x_max, C=1, max_penalty=1):
+    if x_min < x < x_max:
+        return np.min([max_penalty,C*(np.log(0.25*(x_max-x_min)*(x_max-x_min))-np.log((x-x_min)*(x_max-x)))])
+    else:
+        return max_penalty
+        
+    
+    
 def timing(f):
     @wraps(f)
     def wrap(*args, **kw):
@@ -56,28 +64,32 @@ class dqn_train_model(nn.Module):
         super().__init__()
         self.fc1 = nn.Linear(input_size,32 )
         self.fc2 = nn.Linear(32, 128)
-        self.fc3 = nn.Linear(128, 512)
-        self.fc4 = nn.Linear(512, output_size)
+        self.fc3 = nn.Linear(128, 1024)
+        self.fc4 = nn.Linear(1024, 1024)
+        self.fc5 = nn.Linear(1024, output_size)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        return self.fc4(x)
+        x = F.relu(self.fc4(x))
+        return self.fc5(x)
     
 class dqn_target_model(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.fc1 = nn.Linear(input_size,32 )
         self.fc2 = nn.Linear(32, 128)
-        self.fc3 = nn.Linear(128, 512)
-        self.fc4 = nn.Linear(512, output_size)
+        self.fc3 = nn.Linear(128, 1024)
+        self.fc4 = nn.Linear(1024, 1024)
+        self.fc5 = nn.Linear(1024, output_size)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        return self.fc4(x)
+        x = F.relu(self.fc4(x))
+        return self.fc5(x)
 
 
 
@@ -201,7 +213,6 @@ class TrainingEnv:
     
 
     def _aparent_state(self,normalised=False):
-        self._tracker.update_track()
         pos = self._tracker.ball_position()
         vel = self._tracker.ball_velocity()
         arm = self._sim.get_arm_state()
@@ -222,7 +233,7 @@ class TrainingEnv:
                     while not self._cam.update_frame():
                         self._sim.step()
                     self._tracker.update_track()
-                    self.renderer.render(self._episode_durations,self._terminal_rewards)
+            self.renderer.render(self._episode_durations,self._terminal_rewards)
                     
             self._run_episode()
             
@@ -235,7 +246,7 @@ class TrainingEnv:
         for t in tqdm(count(),desc="Steps"):
             # Select and perform an action
             action = self._dqn_agent.act(state)
-            self._sim.take_action(action.item(), self._velocity_factor*0)
+            self._sim.take_action(action.item(), self._velocity_factor)
             while not self._cam.update_frame():
                 self._sim.step()
             try:
@@ -290,8 +301,17 @@ class TrainingEnv:
             or (not -6.10 < state[3] < 6.10) 
             or (not -2.26 < state[4] < 2.26) 
             or (not -6.10 < state[5] < 6.10)):
-            score -= 500
             done = True
+
+        score -= continous_barrier_penalty(state[0],-3.22,3.22,C=10,max_penalty=500)
+        score -= continous_barrier_penalty(state[1],-2.70,0.61,C=10,max_penalty=500)
+        score -= continous_barrier_penalty(state[2],-2.26,2.68,C=10,max_penalty=500)
+        score -= continous_barrier_penalty(state[3],-6.10,6.10,C=10,max_penalty=500)
+        score -= continous_barrier_penalty(state[4],-2.26,2.26,C=10,max_penalty=500)
+        score -= continous_barrier_penalty(state[5],-6.10,6.10,C=10,max_penalty=500)
+
+
+
 
         r= Rotation.from_matrix(self._sim.get_basket_orientation())
         basket_angles = r.as_euler('xyz',degrees=True)
@@ -304,10 +324,8 @@ class TrainingEnv:
         pos = self._sim.get_basket_position()
 
         distance = np.linalg.norm(target-pos)
-        score -= distance*200
+        score -= distance*distance*200
 
-        if distance < 0.1:
-            score += 100
 
         z = pos[2]
         
@@ -316,10 +334,8 @@ class TrainingEnv:
         if self._sim.time > self._max_duration:
             done = True
         
-        if z < self._floor_collision_threshold:
-            score -= 500
-            if z < self._floor_collision_threshold:
-                done = True
+        
+            
         if self._sim.get_n_contacts() > 0:
             if self._sim.is_ball_on_floor():
                 score += 0 if done else +50 
@@ -327,7 +343,19 @@ class TrainingEnv:
             if self._sim.is_ball_in_target():
                 done = True
                 score += 300
+        
+
+        #continous barrier log penalty z height
+        score -= continous_barrier_penalty(z,self._floor_collision_threshold,2*self._z_height-self._floor_collision_threshold,30,300)
+        
+        if z<self._floor_collision_threshold:
+            done = True
+
+        
+
             
        
         
         return score,done
+
+

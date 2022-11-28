@@ -76,7 +76,7 @@ class CV2renderer:
                 ax2.set_ylabel('Last reward')
                 ax2.grid(True)
 
-                plt.text(0.05, 0.05, f"pos: {kalman_x[0:3]} accz: {kalman_x[-1]}", fontsize=12, color='red',transform=fig.transFigure)
+                plt.text(0.05, 0.01, f"pos: ({kalman_x[0]:2.2f},{kalman_x[1]:2.2f},{kalman_x[2]:2.2f}) acc_z: {kalman_x[-1]:1.2f}", fontsize=12, color='red',transform=fig.transFigure)
 
                 if terminal_rewards:
                     terminal_rewards_t = torch.tensor(terminal_rewards, dtype=torch.float)
