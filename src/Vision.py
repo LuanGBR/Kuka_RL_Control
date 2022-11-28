@@ -38,6 +38,10 @@ class RGBD_CamHandler:
     @property
     def fps(self):
         return self._fps
+    
+    @property
+    def size(self):
+        return self._size
 
 
     @property
@@ -168,6 +172,10 @@ class RGBD_CamHandler:
             self.img_buffer,self.depth_buffer = self._viewer.read_pixels(camid=0,depth=True)
 
 
+
+class BallLostException(Exception):
+    pass
+
 class BallTracker:
     """Class to track a ball in a video stream. It uses a HSV color space to filter the ball"""
     def __init__(self,cam,ball_radius = 0.0343):
@@ -251,7 +259,7 @@ class BallTracker:
         
         frame = self._cam.get_image_array()
         center,radius = self._find_circles(frame)
-        MISSING_THRESHOLD = 30
+        MISSING_THRESHOLD = 40
         if center is None and self._not_found >= MISSING_THRESHOLD:
             self._not_found += 1
             self._pixels.clear()
@@ -259,7 +267,7 @@ class BallTracker:
             self._positions.clear()
             self._ticks.clear()
             self._i = 0
-            return 
+            raise BallLostException
         elif center is None and self._not_found < MISSING_THRESHOLD:
             self._not_found += 1
             self._Kalman.predict()
@@ -313,30 +321,5 @@ class BallTracker:
     def ball_velocity(self):
         return np.array(self._Kalman.x[3:6]).flatten()
     
-    def cv2_show(self,contour=False,path=False,kalman_pred=False):
-        frame = self._cam.get_image_array()
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        if self._pixels:
-            falling = self._is_free_fall()
-            center,radius = self._pixels[-1],self._radius[-1]
-            if kalman_pred and falling:
-                p = self._Kalman.x[:3]
-                v = self._Kalman.x[3:6]
-                a = self._Kalman.x[6:]
-                t = np.linspace(0,1,20)
-                pred = [x for x in (p+v*t+0.5*a*t**2 for t in t) if x[2]>0 and x[1]<2]
-                pred = [self._cam.get_pixel_coords(p) for p in pred]
-                for i in range(1, len(pred)):
-                    thickness = 2
-                    cv2.line(frame, pred[i - 1], pred[i], (100,100,100), thickness)
-            if path:
-                for i in range(1, len(self._pixels)):
-                    thickness = int(np.sqrt(20 / float((len(self._pixels))-i + 1)) * 2)
-                    cv2.line(frame, self._pixels[i - 1], self._pixels[i], (255, 0, 0), thickness)
-            if contour:
-                cv2.circle(frame, center,radius , (0, 255, 0) if  falling else (0,0,255), 2)
-            
-        cv2.imshow("frame",frame)
-        cv2.waitKey(1)
     def reset(self):
         self.__init__(self._cam)
