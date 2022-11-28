@@ -48,7 +48,8 @@ class MujocoHandler:
     
     def set_random_state(self):
         init_pos = np.array([-0.966,-2,1]) 
-        V_abs = np.random.uniform(4.5,5.5)
+        # V_abs = np.random.uniform(4.5,5.5)
+        V_abs = 5
         # V_theta = np.random.uniform(np.pi/4,np.pi/3) # TODO: check if this is the right range
         V_theta = np.pi/4
         vx = 0

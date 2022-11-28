@@ -2,12 +2,12 @@ import numpy as np
 from collections import deque
 import random
 from scipy.spatial.transform import Rotation
-from Vision import RGBD_CamHandler, BallTracker, BallLostException
-from Simulation import MujocoHandler
-from Utils import CV2renderer
+from .Vision import RGBD_CamHandler, BallTracker, BallLostException
+from .Simulation import MujocoHandler
+from .Utils import CV2renderer
 from functools import wraps
 from time import time
-from tqdm.auto import tqdm
+from tqdm.auto import trange
 from torch import device, cuda
 import torch
 import torch.nn as nn
@@ -47,69 +47,85 @@ def timing(f):
 class ReplayMemory(object):
 
     def __init__(self, capacity):
-        self.memory = deque([],maxlen=capacity)
+        self._capacity = capacity
+        self._memory = deque([],maxlen=capacity)
 
     def push(self, *args):
         """Save a transition"""
-        self.memory.append(Transition(*args))
+        self._memory.append(Transition(*args))
 
     def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
+        return random.sample(self._memory, batch_size)
 
     def __len__(self):
-        return len(self.memory)
+        return len(self._memory)
+    
+    def save(self, path="saved_data/memory.pth"):
+        torch.save(self._memory, path)
+    
+    def load(self, path="saved_data/memory.pth"):
+        self._memory = torch.load(path)[:self._capacity]
+        self._memory = deque(self._memory, maxlen=self._capacity)
+        
 
 class dqn_train_model(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
-        self.fc1 = nn.Linear(input_size,32 )
-        self.fc2 = nn.Linear(32, 128)
+        self.fc1 = nn.Linear(input_size,128 )
+        self.fc2 = nn.Linear(128, 128)
         self.fc3 = nn.Linear(128, 1024)
         self.fc4 = nn.Linear(1024, 1024)
-        self.fc5 = nn.Linear(1024, output_size)
+        self.fc5 = nn.Linear(1024, 1024)
+        self.fc6 = nn.Linear(1024, output_size)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
-        return self.fc5(x)
-    
+        x = F.relu(self.fc5(x))
+        x = self.fc6(x)
+        return x
+
 class dqn_target_model(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
-        self.fc1 = nn.Linear(input_size,32 )
-        self.fc2 = nn.Linear(32, 128)
+        self.fc1 = nn.Linear(input_size,128)
+        self.fc2 = nn.Linear(128, 128)
         self.fc3 = nn.Linear(128, 1024)
         self.fc4 = nn.Linear(1024, 1024)
-        self.fc5 = nn.Linear(1024, output_size)
+        self.fc5 = nn.Linear(1024, 1024)
+        self.fc6 = nn.Linear(1024, output_size)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
-        return self.fc5(x)
+        x = F.relu(self.fc5(x))
+        x = self.fc6(x)
+        return x
+
+
 
 
 
 class DQN:
     def __init__(self,params):
         self.params = params
-        self._observation_space = params.get("observation_space", 12)
+        self._observation_space = params.get("observation_space", 15)
         self._action_space = params.get("action_space", 729)
         self._memory = ReplayMemory(params.get("memory_size", 1000))
         self._gamma = params.get('gamma', 0.95)
         eps = params.get("epsilon", [params.get("epsilon_max",1.0), params.get("epsilon_min",0.03), params.get("epsilon_decay",200)])
         self._epsilon_max, self._epsilon_min, self._epsilon_decay = eps
-        self._learning_rate = params.get('learning_rate', 0.001)
-        self._tau = params.get('tau', 0.125)
+        # self._learning_rate = params.get('learning_rate', 0.001)
         self._batch_size = params.get('batch_size', 32)
         self._policy_net = dqn_train_model(self._observation_space, self._action_space).to(device)
         self._target_net = dqn_target_model(self._observation_space, self._action_space).to(device)
         self._target_net.load_state_dict(self._policy_net.state_dict())
         self._target_net.eval()
-        self._optimizer = optim.Adam(self._policy_net.parameters(), lr=self._learning_rate)
+        self._optimizer = optim.RMSprop(self._policy_net.parameters())
         self._step = 0
         self._target_update_gap = params.get('target_update_gap', 10)
     
@@ -131,7 +147,11 @@ class DQN:
                 # t.max(1) will return largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
-                act = self._policy_net(state).max(1)[1].view(1, 1)
+                act_l = self._policy_net(state)
+                act_m = act_l.max(1)
+                act = act_m[1].view(1, 1)
+                if self._step >3000:
+                    pass
         else:
             act =  torch.tensor([[np.random.randint(self._action_space)]], device=device, dtype=torch.long)
         self.step += 1
@@ -186,6 +206,16 @@ class DQN:
     def target_update(self,episode_step):
        if episode_step % self._target_update_gap == 0:
                     self._target_net.load_state_dict(self._policy_net.state_dict())
+
+    def save(self,target_path="saved_data/target.pth",policy_path="saved_data/policy.pth"):
+        torch.save(self._policy_net.state_dict(), policy_path)
+        torch.save(self._target_net.state_dict(), target_path)
+        self._memory.save()
+    
+    def load(self,target_path="saved_data/target.pth",policy_path="saved_data/policy.pth"):
+        self._policy_net.load_state_dict(torch.load(policy_path))
+        self._target_net.load_state_dict(torch.load(target_path))
+        self._memory.load()
         
 
             
@@ -209,41 +239,51 @@ class TrainingEnv:
         if self._render:
             self.renderer = CV2renderer(cam=self._cam,tracker=self._tracker)
         self._plot = params.get("plot",False)
-        self._terminal_rewards = []
+        self._terminal_rewards = deque([0], maxlen=10)
     
 
-    def _aparent_state(self,normalised=False):
+    def _aparent_state(self,normalised=True):
         pos = self._tracker.ball_position()
         vel = self._tracker.ball_velocity()
         arm = self._sim.get_arm_state()
-        state = np.concatenate((pos,vel,arm))
+        basket_pos = self._sim.get_basket_position()
+        state = np.concatenate((pos,vel,arm,basket_pos))
         if normalised:
-            normalised_state = state / np.array([10.8,5.8,2.25,10,10,10,3.22886,2.70526,2.26893,6.10865,2.26892802759,6.10865])
+            normalised_state = state / np.array([10.8,5.8,2.25,10,10,10,3.22886,2.70526,2.26893,6.10865,2.26892802759,6.10865,10.8,5.8,2.25])
             return torch.tensor(normalised_state, device=device, dtype=torch.float).view(1, -1)
         else:
             return torch.tensor(state, device=device, dtype=torch.float).view(1, -1)
     def train(self):
-        for i_episode in tqdm(range(self._num_episodes),desc="Episodes"):
-            # Initialize the environment and state
-            self._sim.reset()
-            self._last_init_state = self._sim.set_random_state()
-            self._cam.reset()
-            self._tracker.reset()
-            while not self._tracker.is_tracking() :
-                    while not self._cam.update_frame():
-                        self._sim.step()
-                    self._tracker.update_track()
-            self.renderer.render(self._episode_durations,self._terminal_rewards)
-                    
-            self._run_episode()
+        try:
+            t = trange(self._num_episodes, desc='Episode', leave=True)
+            for i_episode in t:
+                t.set_description(f"Episode {i_episode}, rwd: {np.round(self._terminal_rewards[-1],4)}", refresh=True)
+                # Initialize the environment and state
+                self._sim.reset()
+                self._last_init_state = self._sim.set_random_state()
+                self._cam.reset()
+                self._tracker.reset()
+                while not self._tracker.is_tracking() :
+                        while not self._cam.update_frame():
+                            self._sim.step()
+                        self._tracker.update_track()
+                if self._render:
+                    self.renderer.render(self._episode_durations,self._terminal_rewards)
+                self._run_episode()
+        finally:
+            print('\nComplete')
+            self._dqn_agent.save()
+        
+    
+    
+
             
             
             
     def _run_episode(self):
-        last_screen = self._aparent_state()
-        current_screen = self._aparent_state()
-        state = current_screen - last_screen
-        for t in tqdm(count(),desc="Steps"):
+      
+        state = self._aparent_state()
+        for t in count():
             # Select and perform an action
             action = self._dqn_agent.act(state)
             self._sim.take_action(action.item(), self._velocity_factor)
@@ -253,15 +293,14 @@ class TrainingEnv:
                 self._tracker.update_track()
             except BallLostException:
                 break
-            self.renderer.render(self._episode_durations,self._terminal_rewards)         
+            if self._render:
+                self.renderer.render(self._episode_durations,self._terminal_rewards)         
             reward, done = self._reward_n_done()
             reward = torch.tensor([reward], device=device, dtype=torch.float)
 
             # Observe new state
-            last_screen = current_screen
-            current_screen = self._aparent_state()
             if not done:
-                next_state = current_screen - last_screen
+                next_state = self._aparent_state()
             else:
                 next_state = None
 
@@ -287,8 +326,9 @@ class TrainingEnv:
         t = np.roots([-9.81/2,init_state[5],init_state[2]-z_height]).max()
         xt = init_state[0] + init_state[3]*t
         yt = init_state[1] + init_state[4]*t
-        zt = 0.5
-        return np.array([xt,yt,zt])
+        zt = z_height
+        p = np.array([xt,yt,zt])
+        return p
 
     def _reward_n_done(self):
         score = 0
@@ -303,19 +343,19 @@ class TrainingEnv:
             or (not -6.10 < state[5] < 6.10)):
             done = True
 
-        score -= continous_barrier_penalty(state[0],-3.22,3.22,C=10,max_penalty=500)
-        score -= continous_barrier_penalty(state[1],-2.70,0.61,C=10,max_penalty=500)
-        score -= continous_barrier_penalty(state[2],-2.26,2.68,C=10,max_penalty=500)
-        score -= continous_barrier_penalty(state[3],-6.10,6.10,C=10,max_penalty=500)
-        score -= continous_barrier_penalty(state[4],-2.26,2.26,C=10,max_penalty=500)
-        score -= continous_barrier_penalty(state[5],-6.10,6.10,C=10,max_penalty=500)
+        score -= continous_barrier_penalty(state[0],-3.22,3.22,C=0.025,max_penalty=1)
+        score -= continous_barrier_penalty(state[1],-2.70,0.61,C=0.025,max_penalty=1)
+        score -= continous_barrier_penalty(state[2],-2.26,2.68,C=0.025,max_penalty=1)
+        score -= continous_barrier_penalty(state[3],-6.10,6.10,C=0.025,max_penalty=1)
+        score -= continous_barrier_penalty(state[4],-2.26,2.26,C=0.025,max_penalty=1)
+        score -= continous_barrier_penalty(state[5],-6.10,6.10,C=0.025,max_penalty=1)
 
 
 
 
         r= Rotation.from_matrix(self._sim.get_basket_orientation())
         basket_angles = r.as_euler('xyz',degrees=True)
-        score -= abs(basket_angles[0]) + abs(basket_angles[1])
+        score -= abs(basket_angles[0])/180 + abs(basket_angles[1])/180
 
 
 
@@ -323,8 +363,10 @@ class TrainingEnv:
         target = self._intersect_point(self._last_init_state,self._z_height)
         pos = self._sim.get_basket_position()
 
-        distance = np.linalg.norm(target-pos)
-        score -= distance*distance*200
+        score -= np.abs(pos[0] - target[0])/10.8
+        score -= np.abs(pos[1] - target[1])/5.8
+        score -= np.abs(pos[2] - target[2])/2.8
+
 
 
         z = pos[2]
@@ -338,21 +380,22 @@ class TrainingEnv:
             
         if self._sim.get_n_contacts() > 0:
             if self._sim.is_ball_on_floor():
-                score += 0 if done else +50 
+                score += 0 if done else +0 
                 done = True
             if self._sim.is_ball_in_target():
                 done = True
-                score += 300
+                score +12
         
 
         #continous barrier log penalty z height
-        score -= continous_barrier_penalty(z,self._floor_collision_threshold,2*self._z_height-self._floor_collision_threshold,30,300)
+        score -= continous_barrier_penalty(z,self._floor_collision_threshold,2*self._z_height-self._floor_collision_threshold,0.025,1)
         
         if z<self._floor_collision_threshold:
+            score -= 1
             done = True
 
         
-
+        score = score/13
             
        
         
