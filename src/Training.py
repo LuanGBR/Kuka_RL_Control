@@ -128,6 +128,7 @@ class DQN:
         self._optimizer = optim.RMSprop(self._policy_net.parameters())
         self._step = 0
         self._target_update_gap = params.get('target_update_gap', 10)
+        self._target_update_counter = 0
     
     @property
     def step(self):
@@ -155,6 +156,7 @@ class DQN:
         else:
             act =  torch.tensor([[np.random.randint(self._action_space)]], device=device, dtype=torch.long)
         self.step += 1
+        self._target_update_counter += 1
         return act
     
     def remember(self, state, action, next_state,reward):
@@ -204,8 +206,9 @@ class DQN:
         self._optimizer.step()
     
     def target_update(self,episode_step):
-       if episode_step % self._target_update_gap == 0:
-                    self._target_net.load_state_dict(self._policy_net.state_dict())
+        if self._target_update_counter > self._target_update_gap:
+                self._target_update_counter=0
+                self._target_net.load_state_dict(self._policy_net.state_dict())
 
     def save(self,target_path="saved_data/target.pth",policy_path="saved_data/policy.pth"):
         torch.save(self._policy_net.state_dict(), policy_path)
@@ -240,6 +243,7 @@ class TrainingEnv:
             self.renderer = CV2renderer(cam=self._cam,tracker=self._tracker)
         self._plot = params.get("plot",False)
         self._terminal_rewards = deque([0], maxlen=10)
+        self._ep_rewards = [0]
     
 
     def _aparent_state(self,normalised=True):
@@ -255,9 +259,10 @@ class TrainingEnv:
             return torch.tensor(state, device=device, dtype=torch.float).view(1, -1)
     def train(self):
         try:
-            t = trange(self._num_episodes, desc='Episode', leave=True)
+            t = trange(self._num_episodes)
             for i_episode in t:
-                t.set_description(f"Episode {i_episode}, rwd: {np.round(self._terminal_rewards[-1],4)}", refresh=True)
+                t.set_description(f"Training... ep: {i_episode:<6d} avg_rwd: {np.mean(self._ep_rewards):<5.4f} last_rwd: {self._ep_rewards[-1]:<5.4f}")
+                self._ep_rewards.clear()
                 # Initialize the environment and state
                 self._sim.reset()
                 self._last_init_state = self._sim.set_random_state()
@@ -297,6 +302,7 @@ class TrainingEnv:
                 self.renderer.render(self._episode_durations,self._terminal_rewards)         
             reward, done = self._reward_n_done()
             reward = torch.tensor([reward], device=device, dtype=torch.float)
+            self._ep_rewards.append(reward.item())
 
             # Observe new state
             if not done:
