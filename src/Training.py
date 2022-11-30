@@ -149,78 +149,6 @@ class TrainingEnv:
         p = np.array([xt,yt,zt])
         return p
 
-    def _reward_n_done(self):
-
-        score = 0
-        done = False
-
-        state = self._sim.get_arm_state()
-        if ((not -3.22 < state[0] < 3.22) 
-            or (not -2.70 < state[1] < 0.61) 
-            or (not -2.26 < state[2] < 2.68) 
-            or (not -6.10 < state[3] < 6.10) 
-            or (not -2.26 < state[4] < 2.26) 
-            or (not -6.10 < state[5] < 6.10)):
-            done = True
-
-        score -= continous_barrier_penalty(state[0],-3.22,3.22,C=0.025,max_penalty=1)
-        score -= continous_barrier_penalty(state[1],-2.70,0.61,C=0.025,max_penalty=1)
-        score -= continous_barrier_penalty(state[2],-2.26,2.68,C=0.025,max_penalty=1)
-        score -= continous_barrier_penalty(state[3],-6.10,6.10,C=0.025,max_penalty=1)
-        score -= continous_barrier_penalty(state[4],-2.26,2.26,C=0.025,max_penalty=1)
-        score -= continous_barrier_penalty(state[5],-6.10,6.10,C=0.025,max_penalty=1)
-
-
-
-
-        # r= Rotation.from_matrix(self._sim.get_basket_orientation())
-        # basket_angles = r.as_euler('xyz',degrees=True)
-        # score -= abs(basket_angles[0])/180 + abs(basket_angles[1])/180
-
-
-
-
-        target = self._intersect_point(self._last_init_state,self._z_height)
-        pos = self._sim.get_basket_position()
-
-        score -= np.abs(pos[0] - target[0])/10.8
-        score -= np.abs(pos[1] - target[1])/5.8
-        score -= np.abs(pos[2] - target[2])/2.8
-
-
-
-        z = pos[2]
-        
-        
-        
-        if self._sim.time > self._max_duration:
-            done = True
-        
-        
-            
-        if self._sim.get_n_contacts() > 0:
-            if self._sim.is_ball_on_floor():
-                score += 0 if done else +0 
-                done = True
-            if self._sim.is_ball_in_target():
-                done = True
-                score +12
-        
-
-        #continous barrier log penalty z height
-        score -= continous_barrier_penalty(z,self._floor_collision_threshold,2*self._z_height-self._floor_collision_threshold,0.025,1)
-        
-        if z<self._floor_collision_threshold:
-            score -= 1
-            done = True
-
-        
-        score = score/13
-            
-       
-        
-        return score,done
-
 
 
     def _reward_n_done(self):
@@ -246,6 +174,7 @@ class TrainingEnv:
             if self._sim.is_ball_on_floor():
                 done = True
             if self._sim.is_ball_in_target():
+                
                 done = True
         
         if z<self._floor_collision_threshold:
@@ -258,12 +187,23 @@ class TrainingEnv:
         phi = np.arctan2(target[1],target[0])
 
 
-        # score -= np.linalg.norm(pos - target)
+        score -= np.linalg.norm(pos - target) #distance to target penalty
 
         angular_penalty = 2*hyperbolic_penalty(state[0],phi-0.2,phi+0.2,1,0.1)
-        score -= angular_penalty
+        score -= angular_penalty #angular penalty to fasten learning
 
-        score -= np.abs(z-self._z_height)
+
+
+        r= Rotation.from_matrix(self._sim.get_basket_orientation())
+        basket_angles = r.as_euler('xyz')
+        score -= abs(basket_angles[0]) + abs(basket_angles[1]) #basket orientation penalty
+
+        score -= continous_barrier_penalty(z,self._floor_collision_threshold,2*self._z_height-self._floor_collision_threshold,0.025,1) #continous barrier log penalty z height
+
+        #BONUS FOR FINISH 
+        if self._sim.get_n_contacts() > 0:
+            if self._sim.is_ball_in_target():
+                score += 10
 
 
 
