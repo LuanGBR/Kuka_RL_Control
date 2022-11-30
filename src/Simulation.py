@@ -72,8 +72,11 @@ class MujocoHandler:
     def take_action(self,action,k):
         ternary = np.base_repr(action, base=3)
         ternary = ternary.zfill(6)
+
+
         for i,n in enumerate(ternary):
             self._data.ctrl[i] = (int(n) - 1) * k * self._max_velocities[i]
+        pass
     
     def get_n_contacts(self):
         return self._data.ncon

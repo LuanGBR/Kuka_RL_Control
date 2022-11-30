@@ -2,11 +2,12 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import use
-use("agg")
+# use("agg")
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-class Utils:
+class Plots:
     def plot_3D_points(points):
+        use("agg")
         fig = plt.figure(figsize=(12, 12))
         ax = fig.add_subplot(111, projection='3d')
         ax.view_init(10,-30)
@@ -21,6 +22,24 @@ class Utils:
         ax.set_zlabel('Z')
         ax.set_title(f"Nuvem de pontos")
         return fig,ax
+    def live_plot(y,x=None):
+            if len(y)<2:
+                return
+            plt.clf()
+            x = x if x else np.arange(len(y))
+
+            plt.title(f"Training...")
+            plt.plot(x,y)
+            #tendency line
+            z = np.polyfit(x,y, 7)
+            p = np.poly1d(z)
+            p_x = p(x)
+            plt.plot(x,p_x,c="C1")
+            plt.plot(x,p_x*0.95,c="C1",linestyle="--",alpha=0.5)
+            plt.plot(x,p_x*1.05,c="C1",linestyle="--",alpha=0.5)
+            plt.grid()
+            plt.draw()
+            plt.pause(0.4)
 
 class CV2renderer:
     def __init__(self, enable_bit={"kalman_pred":True, "contour":True, "path":True, "plot":True}, cam=None, tracker=None):
@@ -30,6 +49,7 @@ class CV2renderer:
         self._plot = enable_bit["plot"]
         self._cam = cam
         self._tracker = tracker
+        use("agg")
         self._figsize = (self._cam.size//100, self._cam.size//100)
         self._dpi = 100
 

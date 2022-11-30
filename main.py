@@ -2,12 +2,13 @@ from src.Training import TrainingEnv
 import numpy as np
 from os import path
 
-params = {"memory_size": 6400,
-            "gamma": 0.9,
-            "epsilon": [1.0,0.05,300],
-            "batch_size": 64,
+params = {"memory_size": 64000,
+            "gamma": 0.5,
+            "epsilon": [0.9,0.05,.999],
+            "batch_size": 128,
             "num_episodes": 20000,
             "max_sim_time": 6,
+            "learning_rate": 0.0001,
             "z_height": 0.6,
             "env_path": path.join(path.abspath(path.curdir),"sim_env","environment.xml"),
             "image_size": 600,
@@ -15,7 +16,7 @@ params = {"memory_size": 6400,
             "cam_t": np.array([[0.7],[ 0. ],[4. ]]),
             "fps": 60,
             "floor_collision_threshold": 0.2,
-            "target_update_gap": 24,
+            "target_update_gap": 100,
             "velocity_factor":0.7,
             "render": False, }
 
