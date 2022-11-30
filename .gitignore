@@ -8,3 +8,4 @@ __pycache__/
 *.py[cod]
 
 */mujoco_python_viwer/
+*/saved_data/
