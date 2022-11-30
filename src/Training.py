@@ -12,7 +12,7 @@ device = device("cuda" if cuda.is_available() else "cpu")
 from collections import namedtuple
 from itertools import count
 import matplotlib.pyplot as plt
-from .DQN import DQN_Agent
+from .A2C import A2C
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
@@ -41,7 +41,7 @@ class TrainingEnv:
         self._cam = RGBD_CamHandler(self._sim,size=params.get("image_size",600),windowed=False,fps=params.get("fps",30))
         self._cam.R = params.get("cam_R",np.array([ [0., 0., -1.], [0., 1., 0.],[-1., 0., 0.]]))
         self._cam.t = params.get("cam_t",np.array([[0.7],[ 0. ],[4. ]]))
-        self._dqn_agent = DQN_Agent(params)
+        self._a2c_agent = A2C(729,15,lr=params.get("lr",0.001),gamma=params.get("gamma",0.99),device=device,hidden=2048,max_steps=3000)
         self._num_episodes = params.get("num_episodes",100)
         self._max_duration = params.get("max_sim_time",6)
         self._z_height = params.get("z_height",0.5)
@@ -100,17 +100,17 @@ class TrainingEnv:
         try:
             t = trange(self._num_episodes, desc='Episode', leave=True)
             for i_episode in t:
-                t.set_description(f"Episode {i_episode}, rwd: {np.round(self._terminal_rewards[-1],4) if self._terminal_rewards else '--'} eps: {self._dqn_agent._epsilon}", refresh=True)
+                t.set_description(f"Episode {i_episode}, rwd: {np.round(self._terminal_rewards[-1],4) if self._terminal_rewards else '--'}", refresh=True)
                 # Initialize the environment and state
                 self.reset()
                 self.wait_for_ball()
                 self._run_episode()
-                self._dqn_agent.soft_update()
+                # self._dqn_agent.soft_update()
                 if i_episode % 10 == 0 and i_episode > 0:
                     Plots.live_plot(self._terminal_rewards)
         finally:
-            print('\nComplete')
-            self._dqn_agent.save()
+            print('\nComplete NOT SAVED')
+            # self._dqn_agent.save()
     
 
             
@@ -121,22 +121,22 @@ class TrainingEnv:
         state = self._aparent_state()
         for t in count():
             # Select and perform an action
-            action = self._dqn_agent.select_action(state)
+
+            action = self._a2c_agent.choose_action(state)
             try:
                 reward, done = self.step(action)
             except BallLostException:
                 break
             
             # Observe new state
-            next_state =  None if done else self._aparent_state()
-            # Store the transition in memory
-            self._dqn_agent.remember(state, action, next_state, reward,done)
+            next_state = self._aparent_state()
+            self._a2c_agent.update(state,action,next_state,reward,done)
+            
 
             # Move to the next state
             state = next_state
 
             # Perform one step of the optimization (on the policy network)
-            self._dqn_agent.optimize_model()
             if done:
                 break
         self._terminal_rewards.append(reward.item())
