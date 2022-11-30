@@ -1612,3 +1612,18 @@ WARNING: Nan, Inf or huge value in QVEL at DOF 7. The simulation is unstable. Ti
 Wed Nov 30 08:05:02 2022
 WARNING: Nan, Inf or huge value in QPOS at DOF 10. The simulation is unstable. Time = 0.7780.
 
+Wed Nov 30 13:24:41 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 8. The simulation is unstable. Time = 0.7805.
+
+Wed Nov 30 14:43:23 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 6. The simulation is unstable. Time = 0.4350.
+
+Wed Nov 30 14:44:03 2022
+WARNING: Nan, Inf or huge value in QVEL at DOF 6. The simulation is unstable. Time = 0.4370.
+
+Wed Nov 30 17:57:45 2022
+WARNING: Nan, Inf or huge value in QVEL at DOF 6. The simulation is unstable. Time = 0.4840.
+
+Wed Nov 30 17:57:52 2022
+WARNING: Nan, Inf or huge value in QACC at DOF 10. The simulation is unstable. Time = 0.5190.
+

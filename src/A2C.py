@@ -20,209 +20,276 @@ ALPHA = 0.01
 GAMMA = 0.99
 LR = 3E-4
 
-SEED = 42
+SEED = 1
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-class ActorCritic(nn.Module):
-	def __init__(self, in_dim,out_dim,hidden=2048):
-		super(ActorCritic, self).__init__()
 
-		self.critic_linear1 = nn.Linear(in_dim, hidden)
-		self.critic_linear2 = nn.Linear(hidden, 1)
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-		self.actor_linear1 = nn.Linear(in_dim, hidden)
-		self.actor_linear2 = nn.Linear(hidden, out_dim)
+def hidden_init(layer):
+    fan_in = layer.weight.data.size()[0]
+    lim = 1. / np.sqrt(fan_in)
+    return (-lim, lim)
 
-	def forward(self, state):
-		state = Variable(torch.from_numpy(state).float().unsqueeze(0))
-		value = F.relu(self.critic_linear1(state))
-		value = self.critic_linear2(value)
-		
-		policy_dist = F.relu(self.actor_linear1(state))
-		policy_dist = F.softmax(self.actor_linear2(policy_dist), dim=1)
+class Actor(nn.Module):
+    """Actor (Policy) Model."""
 
-		return value, policy_dist
+    def __init__(self, state_size, action_size, seed, fc_units=512):
+        """Initialize parameters and build model.
+        Params
+        ======
+            state_size (int): Dimension of each state
+            action_size (int): Dimension of each action
+            seed (int): Random seed
+            fc1_units (int): Number of nodes in first hidden layer
+            fc2_units (int): Number of nodes in second hidden layer
+        """
+        super(Actor, self).__init__()
+        self.seed = torch.manual_seed(seed)
+        self.fc1 = nn.Linear(state_size, fc_units)
+        self.fc2 = nn.Linear(fc_units, action_size)
+        self.reset_parameters()
 
+    def reset_parameters(self):
+        self.fc1.weight.data.uniform_(*hidden_init(self.fc1))
+        self.fc2.weight.data.uniform_(-3e-3, 3e-3)
+
+    def forward(self, state):
+        """Build an actor (policy) network that maps states -> actions."""
+        x = torch.relu(self.fc1(state))
+        return torch.tanh(self.fc2(x))
+
+
+class Critic(nn.Module):
+    """Critic (Value) Model."""
+
+    def __init__(self, state_size, action_size, seed, fcs1_units=256, fc2_units=512, fc3_units=256):
+        """Initialize parameters and build model.
+        Params
+        ======
+            state_size (int): Dimension of each state
+            action_size (int): Dimension of each action
+            seed (int): Random seed
+            fcs1_units (int): Number of nodes in the first hidden layer
+            fc2_units (int): Number of nodes in the second hidden layer
+        """
+        super(Critic, self).__init__()
+        self.seed = torch.manual_seed(seed)
+        self.fcs1 = nn.Linear(state_size, fcs1_units)
+        self.fc2 = nn.Linear(fcs1_units+action_size, fc2_units)
+        self.fc3 = nn.Linear(fc2_units, fc3_units)
+        self.fc4 = nn.Linear(fc3_units, 1)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.fcs1.weight.data.uniform_(*hidden_init(self.fcs1))
+        self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
+        self.fc3.weight.data.uniform_(*hidden_init(self.fc3))
+        self.fc4.weight.data.uniform_(-3e-3, 3e-3)
+
+    def forward(self, state, action):
+        """Build a critic (value) network that maps (state, action) pairs -> Q-values."""
+        xs = F.leaky_relu(self.fcs1(state))
+        x = torch.cat((xs, action), dim=1)
+        x = F.leaky_relu(self.fc2(x))
+        x = F.leaky_relu(self.fc3(x))
+        return self.fc4(x)
 
 	
 
+import numpy as np
+import random
+import copy
+from collections import namedtuple, deque
 
-class A2C():
-	def __init__(self,
-				n_actions,
-				observation_space,
-				lr = LR,
-				file_name="SavedA2C",
-				gamma=GAMMA,
-				max_steps=300,
-				hidden=128,
-				network='linear',device='cpu',epsilon=0.9,epsilon_decay=0.99,epsilon_min=0.01):
-		self.name = "A2C"
-		print("Inits A2C Agent")
-		self.device = device
-		print("Using device:",self.device)
-		self.file_name = file_name
-		self.gamma = gamma
-		self.n_actions = n_actions
-		self.max_steps = max_steps
-		self.entropy_term = 0
-		self.n_steps = 0
-		self.all_n_steps = np.zeros((100))
-		self.curr = 0
-		self.log_probs = []
-		self.values = []
-		self.rewards = []
-		self.epsilon = epsilon
-		self.epsilon_decay = epsilon_decay
-		self.epsilon_min = epsilon_min
+import torch
+import torch.nn.functional as F
+import torch.optim as optim
 
-		if network == 'linear':
-			self.actor_critic = ActorCritic(observation_space,n_actions,hidden=hidden)
+BUFFER_SIZE = int(1e6)  # replay buffer size
+BATCH_SIZE = 128        # minibatch size
+GAMMA = 0.99            # discount factor
+TAU = 1e-3             # for soft update of target parameters
+LR_ACTOR = 0.001         # learning rate of the actor 
+LR_CRITIC = 0.0001       # learning rate of the critic
+WEIGHT_DECAY = 0.0001   # L2 weight decay
 
-		elif network == 'conv': 
-			print("Conv Net not implemented")
-			pass
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-		self.ac_optimizer = optim.Adam(self.actor_critic.parameters(), lr=lr)
+class Agent():
+    """Interacts with and learns from the environment."""
+    
+    def __init__(self, state_size, action_size, random_seed):
+        """Initialize an Agent object.
+        
+        Params
+        ======
+            state_size (int): dimension of each state
+            action_size (int): dimension of each action
+            random_seed (int): random seed
+        """
+        self.state_size = state_size
+        self.action_size = action_size
+        self.seed = random.seed(random_seed)
 
-	def choose_random_action(self, state):
-		"""
-		Choose an action according to the policy
-		
-		Parameters
-		----------
-		state
-			Agent's state
-		
-		Returns
-		-------
-		action
-			Action choosen
-		"""
+        # Actor Network (w/ Target Network)
+        self.actor_local = Actor(state_size, action_size, random_seed).to(device)
+        self.actor_target = Actor(state_size, action_size, random_seed).to(device)
+        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR)
 
-		value, policy_dist = self.actor_critic.forward(state)
-		value = value.detach().numpy()[0,0]
-		dist = policy_dist.detach().numpy()
-		action = np.random.choice(self.n_actions, p=np.squeeze(dist)) 
-		index= action
+        # Critic Network (w/ Target Network)
+        self.critic_local = Critic(state_size, action_size, random_seed).to(device)
+        self.critic_target = Critic(state_size, action_size, random_seed).to(device)
+        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
-		log_prob = torch.log(policy_dist.squeeze(0)[index])
-		entropy = -np.sum(np.mean(dist) * np.log(dist))
+        # Noise process
+        self.noise = OUNoise(action_size, random_seed)
 
-		self.values.append(value)
-		self.log_probs.append(log_prob)
-		self.entropy_term += entropy
+        # Replay memory
+        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, random_seed)
 
-		return action
+        self.t=0
+    
+    def step(self, state, action, next_state,reward, done):
+        """Save experience in replay memory, and use random sample from buffer to learn."""
+        self.t+=1
+        # Save experience / reward
+        self.memory.add(state, action,  next_state, reward, done)
 
-	def choose_best_action(self, state):
-		"""
-		Choose an action according to the policy
-		
-		Parameters
-		----------
-		state
-			Agent's state
-		
-		Returns
-		-------
-		action
-			Action choosen
-		"""
+        # Learn, if enough samples are available in memory
+        if len(self.memory) > BATCH_SIZE:
+            experiences = self.memory.sample()
+            self.learn(experiences, GAMMA)
 
-		value, policy_dist = self.actor_critic.forward(state)
-		value = value.detach().numpy()[0,0]
-		dist = policy_dist.detach().numpy()
-		action = np.argmax(dist)
+    def act(self, state, add_noise=True):
+        """Returns actions for given state as per current policy."""
+        state = torch.from_numpy(state).float().to(device)
+        self.actor_local.eval()
+        with torch.no_grad():
+            action = self.actor_local(state).cpu().data.numpy()
+        self.actor_local.train()
+        if add_noise:
+            action = self.noise.get_action(action,self.t)
+        return np.clip(action, -1, 1)
 
-		log_prob = torch.log(policy_dist.squeeze(0)[action])
-		entropy = -np.sum(np.mean(dist) * np.log(dist))
+    def reset(self):
+        self.noise.reset()
 
-		self.values.append(value)
-		self.log_probs.append(log_prob)
-		self.entropy_term += entropy
+    def learn(self, experiences, gamma):
+        """Update policy and value parameters using given batch of experience tuples.
+        Q_targets = r + γ * critic_target(next_state, actor_target(next_state))
+        where:
+            actor_target(state) -> action
+            critic_target(state, action) -> Q-value
+        Params
+        ======
+            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples 
+            gamma (float): discount factor
+        """
+        states, actions, rewards, next_states, dones = experiences
 
-		return action
-	
-	def choose_action(self, state):
-		self.epsilon = max(self.epsilon*self.epsilon_decay,self.epsilon_min)
-		if random.random() < self.epsilon:
-			action = self.choose_best_action(state)
-		else:
-			action = self.choose_random_action(state)
-		
-		return action
-		
+        # ---------------------------- update critic ---------------------------- #
+        # Get predicted next-state actions and Q values from target models
+        actions_next = self.actor_target(next_states)
+        Q_targets_next = self.critic_target(next_states, actions_next)
+        # Compute Q targets for current states (y_i)
+        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
+        # Compute critic loss
+        Q_expected = self.critic_local(states, actions)
+        critic_loss = F.mse_loss(Q_expected, Q_targets)
+        # Minimize the loss
+        self.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        self.critic_optimizer.step()
 
-		
+        # ---------------------------- update actor ---------------------------- #
+        # Compute actor loss
+        actions_pred = self.actor_local(states)
+        actor_loss = -self.critic_local(states, actions_pred).mean()
+        # Minimize the loss
+        self.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        self.actor_optimizer.step()
 
-	def update(self, 
-		 	  state,
-		 	  action,
-		 	  next_state,
-              reward,
-		 	  done,
-		 	  batch_size=128,
-		 	  epochs=1,
-		 	  save=True):
+        # ----------------------- update target networks ----------------------- #
+        self.soft_update(self.critic_local, self.critic_target, TAU)
+        self.soft_update(self.actor_local, self.actor_target, TAU)                     
 
-		self.n_steps += 1
-		self.rewards.append(reward)
-		
-		if done or self.n_steps == self.max_steps:
-			Qval, _ = self.actor_critic.forward(next_state)
-			Qval = Qval.detach().numpy()[0,0]
+    def soft_update(self, local_model, target_model, tau):
+        """Soft update model parameters.
+        θ_target = τ*θ_local + (1 - τ)*θ_target
+        Params
+        ======
+            local_model: PyTorch model (weights will be copied from)
+            target_model: PyTorch model (weights will be copied to)
+            tau (float): interpolation parameter 
+        """
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
 
-			# compute Q values
-			Qvals = np.zeros_like(self.values)
-			for t in reversed(range(len(self.rewards))):
-				Qval = self.rewards[t] + self.gamma * Qval
-				Qvals[t] = Qval
-	  
-			#update actor critic
-			values = torch.FloatTensor(self.values)
-			Qvals = torch.FloatTensor(Qvals)
-			log_probs = torch.stack(self.log_probs)
-			
-			advantage = Qvals - values
-			actor_loss = (-log_probs * advantage).mean()
-			critic_loss = 0.5 * advantage.pow(2).mean()
-			ac_loss = actor_loss + critic_loss + 0.001 * self.entropy_term
+class OUNoise(object):
+    def __init__(self, action_space, mu=0.0, theta=0.20, max_sigma=1.0, min_sigma=0.3, decay_period=10000):
+        self.mu           = mu
+        self.theta        = theta
+        self.sigma        = max_sigma
+        self.max_sigma    = max_sigma
+        self.min_sigma    = min_sigma
+        self.decay_period = decay_period
+        self.action_dim   = action_space
+        self.low          = -1
+        self.high         = 1
+        self.reset()
+        
+    def reset(self):
+        self.state = np.ones(self.action_dim) * self.mu
+        
+    def evolve_state(self):
+        x  = self.state
+        dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(self.action_dim)
+        self.state = x + dx
+        return self.state
+    
+    def get_action(self, action, t=0): 
+        ou_state = self.evolve_state()
+        self.sigma = self.max_sigma - (self.max_sigma - self.min_sigma) * min(1.0, t / self.decay_period)
+        return np.clip(action + ou_state, self.low, self.high)
 
-			self.ac_optimizer.zero_grad()
-			ac_loss.backward()
-			self.ac_optimizer.step()
+class ReplayBuffer:
+    """Fixed-size buffer to store experience tuples."""
 
-			self.curr += 1
-			if self.curr >= 100:
-				self.curr = 0
-			self.all_n_steps[self.curr] = self.n_steps
-			self.n_steps = 0
-			self.log_probs = []
-			self.values = []
-			self.rewards = []
-			del values
-			del Qvals
-			del log_probs	
+    def __init__(self, action_size, buffer_size, batch_size, seed):
+        """Initialize a ReplayBuffer object.
+        Params
+        ======
+            buffer_size (int): maximum size of buffer
+            batch_size (int): size of each training batch
+        """
+        self.action_size = action_size
+        self.memory = deque(maxlen=buffer_size)  # internal memory (deque)
+        self.batch_size = batch_size
+        self.experience = namedtuple("Experience", field_names=["state", "action",  "next_state", "reward","done"])
+        self.seed = random.seed(seed)
+    
+    def add(self, state, action,  next_state, reward,done):
+        """Add a new experience to memory."""
+        e = self.experience(state, action,  next_state, reward,done)
+        self.memory.append(e)
+    
+    def sample(self):
+        """Randomly sample a batch of experiences from memory."""
+        experiences = random.sample(self.memory, k=self.batch_size)
 
-	def save_train(self,folder_name="Saved/"):
-		"""
-		Save NN's parameters
-		"""
-		path = folder_name+self.file_name
-		torch.save(self.actor_critic.state_dict(), path)
+        states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
+        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(device)
+        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
+        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(device)
+        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
 
-	def load_train(self,folder_name="Saved/"):
-		"""
-		Load NN's parameters into agent
-		"""
-		path = folder_name+self.file_name
-		try:
-			self.actor_critic.load_state_dict(torch.load(path))
-			print("Train Loaded")
-		except FileNotFoundError:
-			print("Saved Train not found, continuing without loading")
+        return (states, actions, rewards, next_states, dones)
 
-		except EOFError:
-			print("Saved Train not completed, continuing without loading")
+    def __len__(self):
+        """Return the current size of internal memory."""
+        return len(self.memory)
