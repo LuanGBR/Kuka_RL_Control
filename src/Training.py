@@ -65,26 +65,13 @@ class TrainingEnv:
         state = np.concatenate((pos,vel,arm,basket_pos))
         if normalised:
             normalised_state = state / np.array([10.8,5.8,2.25,10,10,10,3.22886,2.70526,2.26893,6.10865,2.26892802759,6.10865,10.8,5.8,2.25])
-            return torch.tensor(normalised_state, device=device, dtype=torch.float).view(1, -1)
+            return normalised_state
         else:
-            return torch.tensor(state, device=device, dtype=torch.float).view(1, -1)
-    def train(self):
-        try:
-            t = trange(self._num_episodes, desc='Episode', leave=True)
-            for i_episode in t:
-                t.set_description(f"Episode {i_episode}, rwd: {np.round(self._terminal_rewards[-1],4) if self._terminal_rewards else '--'} eps: {self._dqn_agent._epsilon}", refresh=True)
-                # Initialize the environment and state
-                self.reset()
-                self.wait_for_ball()
-                self._run_episode()
-                self._dqn_agent.target_update()
-                if i_episode % 10 == 0 and i_episode > 0:
-                    Plots.live_plot(self._terminal_rewards)
+            return state
+   
                 
             
-        finally:
-            print('\nComplete')
-            self._dqn_agent.save()
+
         
     def reset(self):
         self._sim.reset()
@@ -109,7 +96,21 @@ class TrainingEnv:
         return self._reward_n_done()
             
 
-
+    def train(self):
+        try:
+            t = trange(self._num_episodes, desc='Episode', leave=True)
+            for i_episode in t:
+                t.set_description(f"Episode {i_episode}, rwd: {np.round(self._terminal_rewards[-1],4) if self._terminal_rewards else '--'} eps: {self._dqn_agent._epsilon}", refresh=True)
+                # Initialize the environment and state
+                self.reset()
+                self.wait_for_ball()
+                self._run_episode()
+                self._dqn_agent.soft_update()
+                if i_episode % 10 == 0 and i_episode > 0:
+                    Plots.live_plot(self._terminal_rewards)
+        finally:
+            print('\nComplete')
+            self._dqn_agent.save()
     
 
             
@@ -126,12 +127,10 @@ class TrainingEnv:
             except BallLostException:
                 break
             
-            reward = torch.tensor([reward], device=device, dtype=torch.float)
-
             # Observe new state
             next_state =  None if done else self._aparent_state()
             # Store the transition in memory
-            self._dqn_agent.remember(state, action, next_state, reward)
+            self._dqn_agent.remember(state, action, next_state, reward,done)
 
             # Move to the next state
             state = next_state
@@ -263,6 +262,9 @@ class TrainingEnv:
 
         angular_penalty = 2*hyperbolic_penalty(state[0],phi-0.2,phi+0.2,1,0.1)
         score -= angular_penalty
+
+        score -= np.abs(z-self._z_height)
+
 
 
 
