@@ -69,12 +69,14 @@ class DQN_model(nn.Module):
         super(DQN_model, self).__init__()
         self.fc1 = nn.Linear(input_size,2048)
         self.fc2 = nn.Linear(2048,2048)
-        self.fc3 = nn.Linear(2048, output_size)
+        self.fc3 = nn.Linear(2048,2048)
+        self.fc4 = nn.Linear(2048, output_size)
 
     def forward(self, x):
         x = torch.tanh(self.fc1(x))
         x = torch.tanh(self.fc2(x))
-        x = self.fc3(x)
+        x = torch.tanh(self.fc3(x))
+        x = self.fc4(x)
         return x
     
     def optimizer(self, lr):
