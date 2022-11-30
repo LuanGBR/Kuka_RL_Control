@@ -4,7 +4,7 @@ from os import path
 
 params = {"memory_size": 64000,
             "gamma": 0.99,
-            "epsilon": [0.9,0.05,.999],
+            "epsilon": [0.9,0.005,.999],
             "tau": 0.1,
             "batch_size": 128,
             "num_episodes": 20000,
