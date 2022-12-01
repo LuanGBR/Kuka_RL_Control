@@ -1,35 +1,52 @@
 from src.Training import TrainingEnv
+from src.Evaluation import EvaluationEnv
 import numpy as np
 from os import path
+import json
+import argparse
 
-params = {"memory_size": 64000,
-            "gamma": 0.99,
-            "epsilon": [0.9,0.005,.999],
-            "tau": 0.1,
-            "batch_size": 128,
-            "num_episodes": 20000,
-            "max_sim_time": 6,
-            "learning_rate": 0.0001,
-            "z_height": 0.6,
-            "env_path": path.join(path.abspath(path.curdir),"sim_env","environment.xml"),
-            "image_size": 600,
-            "cam_R":  np.array([ [0., 0., -1.], [0., 1., 0.],[-1., 0., 0.]]),
-            "cam_t": np.array([[0.7],[ 0. ],[4. ]]),
-            "fps": 60,
-            "floor_collision_threshold": 0.2,
-            "update_gap": 4,
-            "velocity_factor":1,
-            "render": False, }
 
-def main():
-    train_env = TrainingEnv(params=params)
-    train_env.train()
+
+
+
+
+
+def main(args):
+    #read params
+    with open(args.paramfile) as f:
+        params = json.load(f)
+    
+    params["cam_R"] = np.array(params["cam_R"])
+    params["cam_t"] = np.array(params["cam_t"])
+    
+
+    if args.mode == "train":
+        print("Training the model")
+        training = TrainingEnv(params)
+        training.train()
+    elif args.mode == "eval":
+        print("Evaluating the model")
+        evaluation = EvaluationEnv(args.model,params)
+        evaluation.evaluate()
+    else:
+        raise ValueError("Invalid mode")
         
 
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    #read arguments from command line
+    parser.add_argument("mode",choices=["train","eval"],help="train or evaluate the model")
+    #params filepath
+    parser.add_argument('-pf',"--paramfile",default="params.json",help="path to params.json file")
+    #eval model filepath
+    parser.add_argument("-m","--model",default="./saved_data/target.pth",help="path to model.pth file in eval mode")
+
+
+
+    args = parser.parse_args()
+    main(args)
         
     
 

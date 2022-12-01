@@ -6,8 +6,7 @@ from collections import namedtuple, deque
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-import torchvision.transforms as T
+import os
 
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -57,24 +56,20 @@ class ReplayBuffer:
     def __len__(self):
         """Return the current size of internal memory."""
         return len(self._memory)
-    
-    
-    def load(self, path="saved_data/memory.pth"):
-        self._memory = torch.load(path)[:self._capacity]
-        self._memory = deque(self._memory, maxlen=self._capacity)
-
 class DQN_model(nn.Module):
 
     def __init__(self, input_size, output_size):
         super(DQN_model, self).__init__()
         self.fc1 = nn.Linear(input_size,2048)
         self.fc2 = nn.Linear(2048,2048)
-        self.fc3 = nn.Linear(2048, output_size)
+        self.fc3 = nn.Linear(2048,2048)
+        self.fc4 = nn.Linear(2048, output_size)
 
     def forward(self, x):
         x = torch.tanh(self.fc1(x))
         x = torch.tanh(self.fc2(x))
-        x = self.fc3(x)
+        x = torch.tanh(self.fc3(x))
+        x = self.fc4(x)
         return x
     
     def optimizer(self, lr):
@@ -124,12 +119,12 @@ class DQN_Agent:
 
 
 
-    def select_action(self, state):
+    def select_action(self, state, eval_mode=False):
         self._step += 1
         # Select action based on current policy
         rng = random.random()
         eps = self._epsilon
-        if rng < eps:
+        if rng < eps and not eval_mode: # epsilon greedy, if not in eval mode
             action = random.randint(0,728)
         else:
             with torch.no_grad():
@@ -141,13 +136,13 @@ class DQN_Agent:
         self._memory.push(state, action, next_state, reward,done)
     
     def save(self,target_path="saved_data/target.pth",policy_path="saved_data/policy.pth"):
+        if not os.path.exists("saved_data"): #check is directory exists
+            os.mkdir("saved_data") # create directory
         torch.save(self._policy_net.state_dict(), policy_path)
         torch.save(self._target_net.state_dict(), target_path)
     
-    def load(self,target_path="saved_data/target.pth",policy_path="saved_data/policy.pth"):
-        self._policy_net.load_state_dict(torch.load(policy_path))
+    def load(self,target_path="saved_data/target.pth"):
         self._target_net.load_state_dict(torch.load(target_path))
-        self._memory.load()
         
     
         
